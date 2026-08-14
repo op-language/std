@@ -1,0 +1,14 @@
+//! Motorola 68000 CPU
+//!
+//! The Motorola 68000 is a 32-bit CISC CPU. The CPU has eight 32-bit data
+//! registers and eight 32-bit address registers.
+
+// TODO: populate with 68000 registers (d0-d7, a0-a7, usp, ssp, pc), condition
+// keywords (true, false, high, low_or_same, carry_clear, carry_set, not_equal,
+// equal, overflow_clear, overflow_set, plus, minus, greater_or_equal,
+// less_than, greater_than, less_or_equal), opcodes (MOVE, MOVEQ, MOVEM, LEA,
+// PEA, CLR, NOT, AND, OR, EOR, ADD, ADDA, ADDI, ADDQ, SUB, SUBA, SUBI, SUBQ,
+// MULU, MULS, DIVU, DIVS, NEG, NEGX, ABS, ASL, ASR, LSL, LSR, ROL, ROR, ROXL,
+// ROXR, CMP, CMPA, CMPI, TST, BTST, BSET, BCLR, BCHG, JMP, JSR, RTS, RTR,
+// RTE, Bcc, BRA, BSR, DBcc, CHK, TRAP, TRAPV, SWAP, EXG, EXT, LINK, UNLK,
+// RESET, NOP, STOP, ILLEGAL), and interrupt vectors (level 1-7, trap).

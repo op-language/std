@@ -1,0 +1,7 @@
+//! MOS 65SC02 CPU
+//!
+//! The MOS 65SC02 extends the 6502 with additional opcodes and addressing
+//! modes. The 65SC02 removes the undocumented opcodes.
+
+// TODO: populate with 65SC02 additional opcodes (BRA, PHX, PHY, PLX, PLY,
+// STZ, TSB, TRB, INA, DEA) and zero-page-indirect addressing mode.

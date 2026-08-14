@@ -1,0 +1,15 @@
+//! Zilog Z80 CPU
+//!
+//! The Zilog Z80 is an 8-bit CPU. The CPU extends the Intel 8080 instruction
+//! set. The Sharp LR35902 is a Z80 variant used in the Nintendo Game Boy
+//! and Game Boy Color.
+
+// TODO: populate with Z80 registers (a, b, c, d, e, h, l, af, bc, de, hl,
+// ix, iy, sp, pc, af2, bc2, de2, hl2), condition keywords (not_zero, zero,
+// no_carry, carry, parity_even, parity_odd, sign_positive, sign_negative),
+// opcodes (LD, PUSH, POP, EX, EXX, LDI, LDIR, LDD, LDDR, CPI, CPIR, CPD,
+// CPDR, ADD, ADC, SUB, SBC, AND, OR, XOR, CP, INC, DEC, DAA, CPL, NEG, CCF,
+// SCF, NOP, HALT, DI, EI, IM, RLC, RL, RRC, RR, SLA, SRA, SLL, SRL, RLD,
+// RRD, RLCA, RLA, RRCA, RRA, JP, JR, DJNZ, CALL, RET, RETI, RETN, RST, IN,
+// OUT, INI, INIR, IND, INDR, OUTI, OTIR, OUTD, OTDR, BIT, SET, RES), and
+// undocumented opcodes (SLL).

@@ -1,0 +1,8 @@
+//! Op Standard Library
+//!
+//! This bank supplies the CPU and the platform definitions for all
+//! supported targets. The #[cfg()] attribute selects the correct code
+//! for the target triplet.
+
+mod cpu;
+mod machine;

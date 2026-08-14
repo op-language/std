@@ -1,0 +1,5 @@
+//! Neo Geo AES Machine Module
+
+mod const;
+
+use const::*;

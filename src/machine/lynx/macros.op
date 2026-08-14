@@ -1,0 +1,12 @@
+//! Lynx Macros
+//!
+//! Inline macros for the Atari Lynx. Ported from the HLAKit lynx.h header.
+
+use const::*;
+
+// --- cart segment address --------------------------------------------------
+
+inline fn set_cart_segment_address(addr) {
+    lda #addr
+    jsr SET_CART_SEGMENT_ADDRESS
+}

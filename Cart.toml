@@ -1,0 +1,13 @@
+[package]
+name = "std"
+version = "0.1.0"
+edition = "1"
+authors = ["Dave Grantham <dwg@linuxprogrammer.org>"]
+license = "Apache-2.0"
+
+[bank]
+name = "std"
+path = "src/bank.op"
+
+[features]
+undocumented = []

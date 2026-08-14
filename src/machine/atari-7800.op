@@ -1,0 +1,5 @@
+//! Atari 7800 Machine Module
+
+mod const;
+
+use const::*;

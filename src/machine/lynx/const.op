@@ -1,0 +1,34 @@
+//! Lynx Constants
+//!
+//! Cart I/O registers, Mikey registers, and ROM function addresses for
+//! the Atari Lynx. Ported from the HLAKit lynx.h header.
+
+// --- Cart I/O --------------------------------------------------------------
+
+#[addr(0xFCB2)]
+CART_BANK_0: u8;
+
+#[addr(0xFCB3)]
+CART_BANK_1: u8;
+
+// --- Mikey registers -------------------------------------------------------
+
+#[addr(0xFD87)]
+MIKEY_SYSTEM_CONTROL: u8;
+
+#[addr(0xFD8A)]
+MIKEY_IO_DIRECTION: u8;
+
+#[addr(0xFD8B)]
+MIKEY_GPIO: u8;
+
+#[addr(0xFD8C)]
+MIKEY_SERIAL_CONTROL: u8;
+
+#[addr(0xFFF9)]
+MIKEY_MEMORY_MAP_CONTROL: u8;
+
+// --- Mikey ROM function addresses ------------------------------------------
+
+const SET_CART_SEGMENT_ADDRESS: u16 = 0xFE00;
+const RSA_LOAD: u16 = 0xFE4A;

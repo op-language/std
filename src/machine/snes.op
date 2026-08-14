@@ -1,0 +1,5 @@
+//! SNES Machine Module
+
+mod const;
+
+use const::*;

@@ -1,0 +1,51 @@
+//! NES Types
+//!
+//! Register enums, color enums, struct types, and type aliases for the
+//! Nintendo Entertainment System.
+
+// --- PPU registers ---------------------------------------------------------
+
+enum PPU {
+    CNT0      = 0x2000,
+    CNT1      = 0x2001,
+    STATUS    = 0x2002,
+    ADDRESS   = 0x2006,
+    IO        = 0x2007,
+    BG_SCROLL = 0x2005,
+}
+
+// --- PPU sprite registers --------------------------------------------------
+
+enum SPR {
+    ADDRESS = 0x2003,
+    IO      = 0x2004,
+    DMA     = 0x4014,
+}
+
+// --- background colors -----------------------------------------------------
+
+enum COLOUR {
+    BLUE   = 0x01,
+    RED    = 0x05,
+    YELLOW = 0x07,
+    GREEN  = 0x09,
+}
+
+// --- struct types ----------------------------------------------------------
+
+struct OAM_ENTRY {
+    y: u8,
+    tile: u8,
+    attributes: u8,
+    x: u8,
+}
+
+struct SCROLL {
+    flags: u8,
+    x: u16,
+    y: u16,
+}
+
+// --- type aliases ----------------------------------------------------------
+
+type OAM_BUFFER = [OAM_ENTRY; 64];

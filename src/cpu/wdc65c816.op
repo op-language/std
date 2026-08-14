@@ -1,0 +1,10 @@
+//! WDC 65C816 CPU
+//!
+//! The WDC 65C816 is a 16-bit extension of the 65C02. The CPU has an 8-bit
+//! accumulator mode and a 16-bit accumulator mode. The CPU has an 8-bit
+//! index mode and a 16-bit index mode.
+
+// TODO: populate with 65C816 additional registers (dbr, pbr, dp), additional
+// opcodes (REP, SEP, XBA, XCE, TCD, TDC, TCS, TSC, TXY, TYX, MVN, MVP, PEA,
+// PEI, PER, JML, JSL, RTL, COP, WAI, STP), and additional addressing modes
+// (absolute long, direct page, stack relative, block move).

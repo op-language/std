@@ -1,0 +1,5 @@
+//! Game Gear Machine Module
+
+mod const;
+
+use const::*;

@@ -1,0 +1,5 @@
+//! Apple IIe Enhanced Machine Module
+
+mod const;
+
+use const::*;

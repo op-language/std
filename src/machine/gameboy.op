@@ -1,0 +1,5 @@
+//! Game Boy Machine Module
+
+mod const;
+
+use const::*;
