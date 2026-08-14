@@ -1,0 +1,18 @@
+//! Test: wdc65c816-apple-iigs
+//!
+//! Verifies that the cfg predicates for cpu, manufacturer, machine,
+//! variant, and target match the triplet wdc65c816-apple-iigs.
+
+use std::*;
+
+#[cfg(cpu = "wdc65c816")]
+const _TEST_CPU: u8 = 0;
+
+#[cfg(manufacturer = "apple")]
+const _TEST_MFR: u8 = 0;
+
+#[cfg(machine = "iigs")]
+const _TEST_MACHINE: u8 = 0;
+
+#[cfg(target = "wdc65c816-apple-iigs")]
+const _TEST_TARGET: u8 = 0;

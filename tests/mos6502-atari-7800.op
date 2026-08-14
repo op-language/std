@@ -1,0 +1,18 @@
+//! Test: mos6502-atari-7800
+//!
+//! Verifies that the cfg predicates for cpu, manufacturer, machine,
+//! variant, and target match the triplet mos6502-atari-7800.
+
+use std::*;
+
+#[cfg(cpu = "mos6502")]
+const _TEST_CPU: u8 = 0;
+
+#[cfg(manufacturer = "atari")]
+const _TEST_MFR: u8 = 0;
+
+#[cfg(machine = "7800")]
+const _TEST_MACHINE: u8 = 0;
+
+#[cfg(target = "mos6502-atari-7800")]
+const _TEST_TARGET: u8 = 0;

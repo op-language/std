@@ -1,0 +1,18 @@
+//! Test: m68000-sega-genesis
+//!
+//! Verifies that the cfg predicates for cpu, manufacturer, machine,
+//! variant, and target match the triplet m68000-sega-genesis.
+
+use std::*;
+
+#[cfg(cpu = "m68000")]
+const _TEST_CPU: u8 = 0;
+
+#[cfg(manufacturer = "sega")]
+const _TEST_MFR: u8 = 0;
+
+#[cfg(machine = "genesis")]
+const _TEST_MACHINE: u8 = 0;
+
+#[cfg(target = "m68000-sega-genesis")]
+const _TEST_TARGET: u8 = 0;
