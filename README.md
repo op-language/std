@@ -1,9 +1,9 @@
 # std
 
-The Op standard library bank.
+The Op standard library lib.
 
-This bank supplies the CPU and the platform definitions for all supported
-targets. The `opc` compiler loads this bank at build time from
+This lib supplies the CPU and the platform definitions for all supported
+targets. The `opc` compiler loads this lib at build time from
 `~/.carts/std/`. The `#[cfg()]` attribute selects the correct code for the
 target triplet.
 
@@ -11,7 +11,7 @@ target triplet.
 
 ```
 src/
-  bank.op            Root file: mod cpu; mod machine;
+  lib.op             Root file: mod cpu; mod machine;
   cpu.op             CPU module: cfg-guarded mod declarations per CPU
   machine.op         Machine module: cfg-guarded mod declarations per machine
   cpu/
@@ -60,7 +60,7 @@ src/
 
 ## Supported Targets
 
-The bank has no default target. The compiler builds it for a specific triplet
+The lib has no default target. The compiler builds it for a specific triplet
 when a ROM project includes it and builds with a target flag.
 
 | Triplet | CPU | Platform |
