@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0]
 
 ### Added
-- Initial `std` bank scaffold.
-- `src/bank.op` root file with `mod cpu; mod machine;` declarations.
+- Initial `std` lib scaffold.
+- `src/lib.op` root file with `mod cpu; mod machine;` declarations.
 - `src/cpu.op` with `#[cfg(cpu = "...")]`-guarded `mod` declarations for all
   supported CPU families.
 - `src/machine.op` with `#[cfg(machine = "...")]`-guarded `mod` declarations

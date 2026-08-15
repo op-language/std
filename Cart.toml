@@ -5,9 +5,9 @@ edition = "1"
 authors = ["Dave Grantham <dwg@linuxprogrammer.org>"]
 license = "Apache-2.0"
 
-[bank]
+[lib]
 name = "std"
-path = "src/bank.op"
+path = "src/lib.op"
 
 [features]
 undocumented = []
