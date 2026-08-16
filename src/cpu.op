@@ -1,0 +1,37 @@
+//! CPU Module
+//!
+//! Pulls in the CPU-specific definitions for the selected target.
+//! The `pub use <cpu>::*` re-export flattens the selected CPU module
+//! so `cpu::a` works directly.
+
+#[cfg(cpu = "mos6502")]
+mod mos6502;
+
+#[cfg(cpu = "mos65sc02")]
+mod mos65sc02;
+
+#[cfg(cpu = "wdc65c816")]
+mod wdc65c816;
+
+#[cfg(cpu = "m68000")]
+mod m68000;
+
+#[cfg(cpu = "z80")]
+mod z80;
+
+// --- Re-export the selected CPU module so `cpu::*` works flat ---------------
+
+#[cfg(cpu = "mos6502")]
+pub use mos6502::*;
+
+#[cfg(cpu = "mos65sc02")]
+pub use mos65sc02::*;
+
+#[cfg(cpu = "wdc65c816")]
+pub use wdc65c816::*;
+
+#[cfg(cpu = "m68000")]
+pub use m68000::*;
+
+#[cfg(cpu = "z80")]
+pub use z80::*;

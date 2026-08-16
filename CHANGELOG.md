@@ -8,28 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0]
 
 ### Added
-- `pub use <cpu> as cpu;` and `pub use <machine> as machine;` aliases at
-  the lib root. `use std::*;` now exposes `cpu::a`, `machine::PPU`, etc.
+- `pub use <cpu>::*;` re-exports inside `cpu.op` so `cpu::a` works
+  directly. The selected CPU module is cfg-guarded and re-exported
   flat.
-- `pub use` re-exports inside each CPU and machine module so the alias
+- `pub use <machine>::*;` re-exports inside `machine.op` so
+  `machine::PPU` works directly. The selected machine module is
+  cfg-guarded and re-exported flat.
+- `pub use` re-exports inside each CPU and machine module so the
   namespace is flat (e.g. `cpu::a`, not `cpu::CPU_REG::a`).
 - New tests `tests/cpu-alias.op` and `tests/machine-alias.op` that
-  exercise the aliases.
+  exercise the re-exports.
 
 ### Changed
-- Flattened the lib structure: CPU and machine files now live at `src/`
-  root. `mod mos6502;` in `lib.op` resolves to `src/mos6502.op`.
+- Restructured the lib: `lib.op` now declares `pub mod cpu; pub mod
+  machine;`. The `cpu.op` and `machine.op` files hold the cfg-guarded
+  `mod` declarations and the `pub use <cpu>::*` re-exports. CPU files
+  live in `src/cpu/` and machine files live in `src/machine/`.
 - Renamed all `const` submodules to `constants` (`const.op` to
   `constants.op`, `mod const;` to `mod constants;`).
 - Renamed hyphenated machine files and mod identifiers to underscores
   (e.g. `apple-ii.op` to `apple_ii.op`, `mod apple_ii;`). The `cfg`
   value stays hyphenated (`machine = "apple-ii"`).
-- Deleted `src/cpu.op`, `src/machine.op`, `src/cpu/`, and `src/machine/`.
 
 ### Breaking
-- The module paths changed. Code that referenced `std::cpu::mos6502::a`
-  or `std::machine::nes::PPU` must now use `std::cpu::a` or
-  `std::machine::PPU` via the aliases.
 - The `const` submodule is now `constants`. Code that did
   `use std::machine::nes::const::*;` must rename to `constants`.
 - Hyphenated machine module names are now underscore names.
