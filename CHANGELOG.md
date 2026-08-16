@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0]
+
+### Added
+- `pub use <cpu> as cpu;` and `pub use <machine> as machine;` aliases at
+  the lib root. `use std::*;` now exposes `cpu::a`, `machine::PPU`, etc.
+  flat.
+- `pub use` re-exports inside each CPU and machine module so the alias
+  namespace is flat (e.g. `cpu::a`, not `cpu::CPU_REG::a`).
+- New tests `tests/cpu-alias.op` and `tests/machine-alias.op` that
+  exercise the aliases.
+
+### Changed
+- Flattened the lib structure: CPU and machine files now live at `src/`
+  root. `mod mos6502;` in `lib.op` resolves to `src/mos6502.op`.
+- Renamed all `const` submodules to `constants` (`const.op` to
+  `constants.op`, `mod const;` to `mod constants;`).
+- Renamed hyphenated machine files and mod identifiers to underscores
+  (e.g. `apple-ii.op` to `apple_ii.op`, `mod apple_ii;`). The `cfg`
+  value stays hyphenated (`machine = "apple-ii"`).
+- Deleted `src/cpu.op`, `src/machine.op`, `src/cpu/`, and `src/machine/`.
+
+### Breaking
+- The module paths changed. Code that referenced `std::cpu::mos6502::a`
+  or `std::machine::nes::PPU` must now use `std::cpu::a` or
+  `std::machine::PPU` via the aliases.
+- The `const` submodule is now `constants`. Code that did
+  `use std::machine::nes::const::*;` must rename to `constants`.
+- Hyphenated machine module names are now underscore names.
+
 ## [0.1.0]
 
 ### Added
