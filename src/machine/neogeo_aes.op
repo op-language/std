@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Neo Geo AES Machine Module
 
 mod constants;
 

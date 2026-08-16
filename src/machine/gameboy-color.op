@@ -1,5 +1,0 @@
-//! Game Boy Color Machine Module
-
-mod const;
-
-use const::*;

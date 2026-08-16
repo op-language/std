@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Sega Genesis Machine Module
 
 mod constants;
 

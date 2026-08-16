@@ -1,5 +1,0 @@
-//! Apple IIgs Machine Module
-
-mod const;
-
-use const::*;

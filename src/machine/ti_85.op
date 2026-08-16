@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! TI-85 Machine Module
 
 mod constants;
 

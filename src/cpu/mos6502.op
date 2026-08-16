@@ -169,3 +169,11 @@ enum INTERRUPT {
     nmi,
     irq,
 }
+
+// Re-export the register enum variants so `cpu::a`, `cpu::x`, `cpu::y`
+// work after `use std::*;` or `use std::cpu::*;`.
+pub use CPU_REG::*;
+pub use COND::*;
+pub use OPCODE::*;
+pub use ADDR_MODE::*;
+pub use INTERRUPT::*;

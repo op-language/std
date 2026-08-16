@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Atari 2600 Machine Module
 
 mod constants;
 

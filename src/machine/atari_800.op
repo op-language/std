@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Atari 800 Machine Module
 
 mod constants;
 

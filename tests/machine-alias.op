@@ -1,0 +1,9 @@
+//! Test: the `machine` alias resolves to the selected machine module.
+//!
+//! Build with mos6502-nintendo-nes-ntsc.
+
+use std::*;
+
+// machine::PPU::CNT0 resolves through the pub use chain.
+#[cfg(machine = "nes")]
+const _TEST_MACHINE_ALIAS: u16 = machine::PPU::CNT0;

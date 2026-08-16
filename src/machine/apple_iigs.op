@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Apple IIgs Machine Module
 
 mod constants;
 

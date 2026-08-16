@@ -1,6 +1,8 @@
 //! Machine Module
 //!
 //! Pulls in the machine-specific definitions for the selected target.
+//! The `pub use <machine>::*` re-export flattens the selected machine
+//! module so `machine::PPU` works directly.
 
 #[cfg(machine = "nes")]
 mod nes;
@@ -76,3 +78,80 @@ mod spectrum;
 
 #[cfg(machine = "ti-85")]
 mod ti_85;
+
+// --- Re-export the selected machine module so `machine::*` works flat --------
+
+#[cfg(machine = "nes")]
+pub use nes::*;
+
+#[cfg(machine = "lynx")]
+pub use lynx::*;
+
+#[cfg(machine = "apple-ii")]
+pub use apple_ii::*;
+
+#[cfg(machine = "apple-iic")]
+pub use apple_iic::*;
+
+#[cfg(machine = "apple-iie")]
+pub use apple_iie::*;
+
+#[cfg(machine = "apple-iie-enhanced")]
+pub use apple_iie_enhanced::*;
+
+#[cfg(machine = "atari-800")]
+pub use atari_800::*;
+
+#[cfg(machine = "atari-2600")]
+pub use atari_2600::*;
+
+#[cfg(machine = "atari-5200")]
+pub use atari_5200::*;
+
+#[cfg(machine = "atari-7800")]
+pub use atari_7800::*;
+
+#[cfg(machine = "commodore-64")]
+pub use commodore_64::*;
+
+#[cfg(machine = "pcengine")]
+pub use pcengine::*;
+
+#[cfg(machine = "neogeo-aes")]
+pub use neogeo_aes::*;
+
+#[cfg(machine = "sega-genesis")]
+pub use sega_genesis::*;
+
+#[cfg(machine = "apple-iigs")]
+pub use apple_iigs::*;
+
+#[cfg(machine = "snes")]
+pub use snes::*;
+
+#[cfg(machine = "gameboy")]
+pub use gameboy::*;
+
+#[cfg(machine = "gameboy-color")]
+pub use gameboy_color::*;
+
+#[cfg(machine = "gamegear")]
+pub use gamegear::*;
+
+#[cfg(machine = "mastersystem")]
+pub use mastersystem::*;
+
+#[cfg(machine = "sg1000")]
+pub use sg1000::*;
+
+#[cfg(machine = "zx80")]
+pub use zx80::*;
+
+#[cfg(machine = "zx81")]
+pub use zx81::*;
+
+#[cfg(machine = "spectrum")]
+pub use spectrum::*;
+
+#[cfg(machine = "ti-85")]
+pub use ti_85::*;

@@ -3,8 +3,8 @@
 //! System inline macros for the Nintendo Entertainment System. Ported from
 //! the HLAKit NES system headers and the nes-code.op example.
 
-use const::*;
-use types::*;
+use super::constants::*;
+use super::types::*;
 
 // --- interrupt control -----------------------------------------------------
 

@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0]
+
+### Added
+- `pub use <cpu>::*;` re-exports inside `cpu.op` so `cpu::a` works
+  directly. The selected CPU module is cfg-guarded and re-exported
+  flat.
+- `pub use <machine>::*;` re-exports inside `machine.op` so
+  `machine::PPU` works directly. The selected machine module is
+  cfg-guarded and re-exported flat.
+- `pub use` re-exports inside each CPU and machine module so the
+  namespace is flat (e.g. `cpu::a`, not `cpu::CPU_REG::a`).
+- New tests `tests/cpu-alias.op` and `tests/machine-alias.op` that
+  exercise the re-exports.
+
+### Changed
+- Restructured the lib: `lib.op` now declares `pub mod cpu; pub mod
+  machine;`. The `cpu.op` and `machine.op` files hold the cfg-guarded
+  `mod` declarations and the `pub use <cpu>::*` re-exports. CPU files
+  live in `src/cpu/` and machine files live in `src/machine/`.
+- Renamed all `const` submodules to `constants` (`const.op` to
+  `constants.op`, `mod const;` to `mod constants;`).
+- Renamed hyphenated machine files and mod identifiers to underscores
+  (e.g. `apple-ii.op` to `apple_ii.op`, `mod apple_ii;`). The `cfg`
+  value stays hyphenated (`machine = "apple-ii"`).
+
+### Breaking
+- The `const` submodule is now `constants`. Code that did
+  `use std::machine::nes::const::*;` must rename to `constants`.
+- Hyphenated machine module names are now underscore names.
+
 ## [0.1.0]
 
 ### Added

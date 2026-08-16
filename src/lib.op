@@ -1,8 +1,13 @@
 //! Op Standard Library
 //!
 //! This lib supplies the CPU and the platform definitions for all
-//! supported targets. The #[cfg()] attribute selects the correct code
-//! for the target triplet.
+//! supported targets. The `opc` compiler loads this lib at build time
+//! from `~/.carts/std/`. The `#[cfg()]` attribute selects the correct
+//! code for the target triplet.
+//!
+//! The `cpu` module re-exports the selected CPU module so `cpu::a`
+//! works directly. The `machine` module re-exports the selected
+//! machine module so `machine::PPU` works directly.
 
-mod cpu;
-mod machine;
+pub mod cpu;
+pub mod machine;

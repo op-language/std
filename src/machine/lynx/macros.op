@@ -2,7 +2,7 @@
 //!
 //! Inline macros for the Atari Lynx. Ported from the HLAKit lynx.h header.
 
-use const::*;
+use super::constants::*;
 
 // --- cart segment address --------------------------------------------------
 

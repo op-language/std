@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Commodore 64 Machine Module
 
 mod constants;
 

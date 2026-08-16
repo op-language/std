@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Game Boy Color Machine Module
 
 mod constants;
 

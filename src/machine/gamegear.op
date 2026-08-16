@@ -1,5 +1,5 @@
 //! Game Gear Machine Module
 
-mod const;
+mod constants;
 
-use const::*;
+pub use constants::*;

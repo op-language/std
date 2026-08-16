@@ -1,4 +1,4 @@
-//! Spectrum Machine Module
+//! Apple IIc Machine Module
 
 mod constants;
 

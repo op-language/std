@@ -5,9 +5,9 @@
 //!
 //! Target triplet: `mos65sc02-atari-lynx`
 
-mod const;
+mod constants;
 mod macros;
 mod loader;
 
-use const::*;
-use macros::*;
+pub use constants::*;
+pub use macros::*;

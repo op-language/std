@@ -4,10 +4,10 @@
 //!
 //! Target triplets: `mos6502-nintendo-nes-ntsc` and `mos6502-nintendo-nes-pal`
 
-mod const;
+mod constants;
 mod types;
 mod macros;
 
-use const::*;
-use types::*;
-use macros::*;
+pub use constants::*;
+pub use types::*;
+pub use macros::*;
