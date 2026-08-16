@@ -1,5 +1,0 @@
-//! Spectrum Machine Module
-
-mod const;
-
-use const::*;

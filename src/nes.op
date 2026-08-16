@@ -1,0 +1,13 @@
+//! NES Machine Module
+//!
+//! Nintendo Entertainment System platform definitions and system macros.
+//!
+//! Target triplets: `mos6502-nintendo-nes-ntsc` and `mos6502-nintendo-nes-pal`
+
+mod constants;
+mod types;
+mod macros;
+
+pub use constants::*;
+pub use types::*;
+pub use macros::*;

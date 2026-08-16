@@ -1,5 +1,0 @@
-//! SG-1000 Machine Module
-
-mod const;
-
-use const::*;

@@ -1,0 +1,10 @@
+//! Test: the `cpu` alias resolves to the selected CPU module.
+//!
+//! Build with any target, e.g. mos6502-nintendo-nes-ntsc.
+
+use std::*;
+
+// This const is only valid if `cpu` is an alias for the selected CPU module.
+// cpu::a resolves to the mos6502 CPU_REG::a variant.
+#[cfg(cpu = "mos6502")]
+const _TEST_CPU_ALIAS: u8 = cpu::a;

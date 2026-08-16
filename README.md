@@ -5,57 +5,55 @@ The Op standard library lib.
 This lib supplies the CPU and the platform definitions for all supported
 targets. The `opc` compiler loads this lib at build time from
 `~/.carts/std/`. The `#[cfg()]` attribute selects the correct code for the
-target triplet.
+target triplet. The `pub use ... as cpu;` and `pub use ... as machine;`
+aliases expose the selected CPU and machine under a stable name. A program
+that does `use std::*;` can write `cpu::a`, `machine::PPU`, etc. directly.
 
 ## Structure
 
 ```
 src/
-  lib.op             Root file: mod cpu; mod machine;
-  cpu.op             CPU module: cfg-guarded mod declarations per CPU
-  machine.op         Machine module: cfg-guarded mod declarations per machine
-  cpu/
-    mos6502.op       MOS 6502 CPU family (populated)
-    mos65sc02.op     MOS 65SC02 (stub)
-    wdc65c816.op     WDC 65C816 (stub)
-    m68000.op        Motorola 68000 (stub)
-    z80.op           Zilog Z80 / Sharp LR35902 (stub)
-  machine/
-    nes.op           NES module: mod const; mod types; mod macros;
-    nes/
-      const.op       NES constants (REFRESH_HZ, CR_*, ST_*, addresses)
-      types.op       NES types (PPU, SPR, COLOUR enums, OAM_ENTRY, SCROLL)
-      macros.op      NES inline macros (system init, vblank, VRAM, video)
-    lynx.op          Lynx module: mod const; mod macros; mod loader;
-    lynx/
-      const.op       Lynx constants (cart I/O, Mikey registers, ROM funcs)
-      macros.op      Lynx inline macros (set_cart_segment_address)
-      loader.op      Lynx loader stubs (micro loader, secondary loader)
-    apple-ii.op      Apple II module (stub)
-    apple-ii/
-      const.op       Apple II constants (stub)
-    apple-iic/       Apple IIc (stub)
-    apple-iie/       Apple IIe (stub)
-    apple-iie-enhanced/ Apple IIe Enhanced (stub)
-    atari-800/       Atari 800 (stub)
-    atari-2600/      Atari 2600 (stub)
-    atari-5200/      Atari 5200 (stub)
-    atari-7800/      Atari 7800 (stub)
-    commodore-64/    Commodore 64 (stub)
-    pcengine/        NEC PC Engine (stub)
-    neogeo-aes/      Neo Geo AES (stub)
-    sega-genesis/    Sega Genesis (stub)
-    apple-iigs/      Apple IIgs (stub)
-    snes/            Super Nintendo Entertainment System (stub)
-    gameboy/         Nintendo Game Boy (stub)
-    gameboy-color/   Nintendo Game Boy Color (stub)
-    gamegear/        Sega Game Gear (stub)
-    mastersystem/    Sega Master System (stub)
-    sg1000/          Sega SG-1000 (stub)
-    zx80/            Sinclair ZX80 (stub)
-    zx81/            Sinclair ZX81 (stub)
-    spectrum/        Sinclair Spectrum (stub)
-    ti-85/           Texas Instruments TI-85 (stub)
+  lib.op           Root: cfg-guarded mod decls + pub use aliases
+  mos6502.op       MOS 6502 CPU family (populated)
+  mos65sc02.op     MOS 65SC02 (stub)
+  wdc65c816.op     WDC 65C816 (stub)
+  m68000.op        Motorola 68000 (stub)
+  z80.op           Zilog Z80 / Sharp LR35902 (stub)
+  nes.op           NES module: mod constants; mod types; mod macros;
+  nes/
+    constants.op   NES constants (REFRESH_HZ, CR_*, ST_*, addresses)
+    types.op       NES types (PPU, SPR, COLOUR enums, OAM_ENTRY, SCROLL)
+    macros.op      NES inline macros (system init, vblank, VRAM, video)
+  lynx.op          Lynx module: mod constants; mod macros; mod loader;
+  lynx/
+    constants.op   Lynx constants (cart I/O, Mikey registers, ROM funcs)
+    macros.op      Lynx inline macros (set_cart_segment_address)
+    loader.op      Lynx loader stubs (micro loader, secondary loader)
+  apple_ii.op      Apple II (stub)
+  apple_ii/
+    constants.op   Apple II constants (stub)
+  apple_iic/       Apple IIc (stub)
+  apple_iie/       Apple IIe (stub)
+  apple_iie_enhanced/ Apple IIe Enhanced (stub)
+  atari_800/       Atari 800 (stub)
+  atari_2600/      Atari 2600 (stub)
+  atari_5200/      Atari 5200 (stub)
+  atari_7800/      Atari 7800 (stub)
+  commodore_64/    Commodore 64 (stub)
+  pcengine/        NEC PC Engine (stub)
+  neogeo_aes/      Neo Geo AES (stub)
+  sega_genesis/    Sega Genesis (stub)
+  apple_iigs/      Apple IIgs (stub)
+  snes/            Super Nintendo Entertainment System (stub)
+  gameboy/         Nintendo Game Boy (stub)
+  gameboy_color/   Nintendo Game Boy Color (stub)
+  gamegear/        Sega Game Gear (stub)
+  mastersystem/    Sega Master System (stub)
+  sg1000/          Sega SG-1000 (stub)
+  zx80/            Sinclair ZX80 (stub)
+  zx81/            Sinclair ZX81 (stub)
+  spectrum/        Sinclair Spectrum (stub)
+  ti_85/           Texas Instruments TI-85 (stub)
 ```
 
 ## Supported Targets

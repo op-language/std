@@ -1,0 +1,5 @@
+//! NEC PC Engine Machine Module
+
+mod constants;
+
+pub use constants::*;

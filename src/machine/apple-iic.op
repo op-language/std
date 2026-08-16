@@ -1,5 +1,0 @@
-//! Apple IIc Machine Module
-
-mod const;
-
-use const::*;

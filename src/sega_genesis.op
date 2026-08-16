@@ -1,0 +1,5 @@
+//! Sega Genesis Machine Module
+
+mod constants;
+
+pub use constants::*;

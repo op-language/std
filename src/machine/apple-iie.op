@@ -1,5 +1,0 @@
-//! Apple IIe Machine Module
-
-mod const;
-
-use const::*;
