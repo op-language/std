@@ -1,13 +1,26 @@
 //! NES Machine Module
 //!
-//! Nintendo Entertainment System platform definitions and system macros.
+//! Nintendo Entertainment System platform definitions, system macros,
+//! IO, audio, video, mappers, memory, and palette functions.
 //!
-//! Target triplets: `mos6502-nintendo-nes-ntsc` and `mos6502-nintendo-nes-pal`
+//! Target triplets: `rp2A03-nintendo-nes-ntsc` and
+//! `rp2A07-nintendo-nes-pal`
 
 mod constants;
 mod types;
 mod macros;
+mod io;
+mod audio;
+mod mappers;
+mod memory;
+mod palette;
+mod ram;
 
 pub use constants::*;
 pub use types::*;
 pub use macros::*;
+pub use io::*;
+pub use audio::*;
+pub use mappers::*;
+pub use memory::*;
+pub use palette::*;

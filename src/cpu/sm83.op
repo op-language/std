@@ -1,0 +1,143 @@
+//! Sharp SM83 CPU
+//!
+//! Registers, condition keywords, opcode mnemonics, addressing modes,
+//! and interrupt names for the Sharp SM83 CPU. The SM83 is a Z80
+//! derivative used in the Nintendo Game Boy and Game Boy Color. The
+//! CPU removes the alternate register set, the I and R registers, and
+//! several Z80 opcodes. The CPU adds the STOP and LDH opcodes.
+
+// --- Clock frequency -------------------------------------------------------
+
+const CLOCK_HZ: u32 = 4194304;
+
+// --- Registers -------------------------------------------------------------
+//
+// The lib defines the 8-bit registers, 16-bit register pairs, stack
+// pointer, and program counter. The SM83 does not have the alternate
+// register set.
+
+enum CPU_REG {
+    a  = 0,
+    b  = 1,
+    c  = 2,
+    d  = 3,
+    e  = 4,
+    h  = 5,
+    l  = 6,
+    af = 7,
+    bc = 8,
+    de = 9,
+    hl = 10,
+    sp = 11,
+    pc = 12,
+}
+
+// --- Condition keywords ----------------------------------------------------
+//
+// The SM83 supports four condition keywords.
+
+enum COND {
+    not_zero  = 0,
+    zero      = 1,
+    no_carry  = 2,
+    carry     = 3,
+}
+
+// --- Opcode mnemonics ------------------------------------------------------
+//
+// The SM83 opcode set is a subset of the Z80 set. The additions are
+// STOP and LDH. The SM83 does not support EXX, RLD, RRD, INI, INIR,
+// IND, INDR, OUTI, OTIR, OUTD, OTDR, NEG, IM, and RETN.
+
+enum OPCODE {
+    LD,
+    PUSH,
+    POP,
+    EX,
+    LDI,
+    LDD,
+    ADD,
+    ADC,
+    SUB,
+    SBC,
+    AND,
+    OR,
+    XOR,
+    CP,
+    INC,
+    DEC,
+    DAA,
+    CPL,
+    CCF,
+    SCF,
+    NOP,
+    HALT,
+    DI,
+    EI,
+    RLC,
+    RL,
+    RRC,
+    RR,
+    SLA,
+    SRA,
+    SRL,
+    RLCA,
+    RLA,
+    RRCA,
+    RRA,
+    JP,
+    JR,
+    CALL,
+    RET,
+    RETI,
+    RST,
+    BIT,
+    SET,
+    RES,
+    STOP,
+    LDH,
+}
+
+// --- Undocumented opcodes --------------------------------------------------
+//
+// The SM83 has undocumented opcodes that real hardware executes. The
+// lib defines them as legal mnemonics. A program may use them with
+// #[cfg(feature = "undocumented")].
+
+#[cfg(feature = "undocumented")]
+enum UNDOC_OPCODE {
+    SLL,
+}
+
+// --- Addressing modes ------------------------------------------------------
+//
+// The lib defines the addressing mode prefix names.
+
+enum ADDR_MODE {
+    imm,
+    abs,
+    ind,
+    idx,
+    rel,
+    bit,
+}
+
+// --- Interrupt vectors -----------------------------------------------------
+//
+// The SM83 uses fixed vector addresses. The lib defines the names for
+// #[interrupt(...)].
+
+enum INTERRUPT {
+    vblank,
+    lcdc,
+    timer,
+    serial,
+    joypad,
+}
+
+// Re-export the enum variants.
+pub use CPU_REG::*;
+pub use COND::*;
+pub use OPCODE::*;
+pub use ADDR_MODE::*;
+pub use INTERRUPT::*;

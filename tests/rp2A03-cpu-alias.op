@@ -1,0 +1,10 @@
+//! Test: the `cpu` alias resolves to the selected CPU module.
+//!
+//! Build with the rp2A03 target: rp2A03-nintendo-nes-ntsc.
+
+use std::*;
+
+// This const is only valid if `cpu` is an alias for the selected CPU module.
+// cpu::a resolves to the rp2A03 CPU_REG::a variant.
+#[cfg(cpu = "rp2A03")]
+const _TEST_CPU_ALIAS: u8 = cpu::a;

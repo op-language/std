@@ -1,5 +1,14 @@
 //! Game Boy Machine Module
+//!
+//! Nintendo Game Boy platform definitions, types, and macros.
+//! Game Boy Color registers are gated on `#[cfg(variant = "color")]`.
+//!
+//! Target triplet: `sm83-nintendo-gameboy`
 
 mod constants;
+mod types;
+mod macros;
 
 pub use constants::*;
+pub use types::*;
+pub use macros::*;

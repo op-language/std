@@ -1,0 +1,84 @@
+//! NES Palette
+//!
+//! Palette set and write macros and functions for the Nintendo
+//! Entertainment System. Ported from the HLAKit nes_palette.s file.
+
+use super::constants::*;
+use super::types::*;
+use super::macros::*;
+use super::ram::*;
+use std::cpu::mos6502::macros::*;
+use std::cpu::mos6502::ram::*;
+
+// --- palette macros --------------------------------------------------------
+
+inline fn set_palette_ptr(pal) {
+    assign_16i(_pal_ptr, pal)
+}
+
+inline fn set_palette(pal) {
+    memcpy_inline(_palette, pal, sizeof!(PALETTE))
+    write_palette()
+}
+
+inline fn set_sprite_palette(pal) {
+    vram_set_address_i(PAL_ADDRESS + 16)
+    ldx #0
+    do {
+        vram_write_regx()
+        inx
+        cpx #sizeof!(PALETTE)
+    } while (not equal)
+    vram_clear_address()
+}
+
+inline fn set_palette_entry(pal, entry) {
+    memcpy_inline(_palette + entry * 4, pal, 4)
+    write_palette()
+}
+
+inline fn write_updated_palette_fast(paladdr) {
+    vram_set_address_i(PAL_ADDRESS)
+    vram_write(paladdr + 0x00)
+    vram_write(paladdr + 0x01)
+    vram_write(paladdr + 0x02)
+    vram_write(paladdr + 0x03)
+    vram_write(paladdr + 0x00)
+    vram_write(paladdr + 0x05)
+    vram_write(paladdr + 0x06)
+    vram_write(paladdr + 0x07)
+    vram_write(paladdr + 0x00)
+    vram_write(paladdr + 0x09)
+    vram_write(paladdr + 0x0A)
+    vram_write(paladdr + 0x0B)
+    vram_write(paladdr + 0x00)
+    vram_write(paladdr + 0x0D)
+    vram_write(paladdr + 0x0E)
+    vram_write(paladdr + 0x0F)
+}
+
+// --- palette functions ------------------------------------------------------
+
+fn set_ptr_palette() {
+    vram_set_address_i(PAL_ADDRESS)
+    ldy #0
+    do {
+        lda (_pal_ptr), y
+        sta PPU::IO
+        iny
+        cpy #sizeof!(PALETTE)
+    } while (not equal)
+    vram_clear_address()
+}
+
+fn write_palette() {
+    vram_set_address_i(PAL_ADDRESS)
+    ldx #0
+    do {
+        lda _palette, x
+        sta PPU::IO
+        inx
+        cpx #sizeof!(PALETTE)
+    } while (not equal)
+    vram_clear_address()
+}

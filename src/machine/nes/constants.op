@@ -1,7 +1,9 @@
 //! NES Constants
 //!
-//! Conditional constants, PPU control bitmasks, status flags, and
-//! palette and name table addresses for the Nintendo Entertainment System.
+//! Conditional constants, PPU control bitmasks, status flags, sprite
+//! constants, palette addresses, pattern table addresses, name table
+//! constants, joystick constants, and button masks for the Nintendo
+//! Entertainment System.
 
 // --- conditional constants -------------------------------------------------
 
@@ -11,18 +13,79 @@ const REFRESH_HZ: u8 = 60;
 #[cfg(variant = "pal")]
 const REFRESH_HZ: u8 = 50;
 
-// --- PPU control register bitmasks -----------------------------------------
+// --- PPU control register 0 bitmasks ---------------------------------------
 
-const CR_NMI: u8            = %10000000;
-const CR_BACKVISIBLE: u8    = %00001000;
-const CR_BACKNOCLIP: u8     = %00000010;
-const CR_SPRITESVISIBLE: u8 = %00010000;
+const CR_NMI: u8           = %10000000;
+const CR_PPUSLAVE: u8      = %01000000;
+const CR_SPRITE8x16: u8    = %00100000;
+const CR_BACKADDR1000: u8  = %00010000;
+const CR_SPRADDR1000: u8   = %00001000;
+const CR_ADDRINC32: u8    = %00000100;
+const CR_NAMETABLEBITS: u8 = %00000011;
+
+// --- PPU control register 1 bitmasks ---------------------------------------
+
+const CR_PALETTEINTENSITY: u8 = %11100000;
+const CR_SPRITESVISIBLE: u8   = %00010000;
+const CR_BACKVISIBLE: u8      = %00001000;
+const CR_SPRNOCLIP: u8        = %00000100;
+const CR_BACKNOCLIP: u8       = %00000010;
+const CR_MONOCHROME: u8       = %00000001;
 
 // --- PPU status flags ------------------------------------------------------
 
-const ST_VBLANK: u8 = %10000000;
+const ST_VBLANK: u8          = %10000000;
+const ST_SPRITE0: u8         = %01000000;
+const ST_SCANSPROVERFLOW: u8 = %00100000;
+const ST_VRAM_NOWRITE: u8    = %00010000;
 
-// --- palette and name table addresses --------------------------------------
+// --- sprite constants ------------------------------------------------------
 
-const PAL_ADDRESS: u16          = 0x3F00;
+const SPR_OAM_TOTAL: u8 = 64;
+
+// --- palette addresses -----------------------------------------------------
+
+const PAL_ADDRESS: u16   = 0x3F00;
+const PAL_0_ADDRESS: u16 = 0x3F00;
+const PAL_1_ADDRESS: u16 = 0x3F10;
+
+// --- pattern table addresses -----------------------------------------------
+
+const PATTERN_TABLE_0_ADDRESS: u16 = 0x0000;
+const PATTERN_TABLE_1_ADDRESS: u16 = 0x1000;
+
+// --- name table constants ---------------------------------------------------
+
+const NAMETABLE_WIDTH: u8  = 32;
+const NAMETABLE_HEIGHT: u8 = 30;
+const SCREEN_WIDTH: u16    = 256;
+const SCREEN_HEIGHT: u16   = 240;
+
 const NAME_TABLE_0_ADDRESS: u16 = 0x2000;
+const NAME_TABLE_SIZE: u16      = 0x03C0;
+const ATTRIBUTE_TABLE_0_ADDRESS: u16 = 0x23C0;
+const ATTRIBUTE_TABLE_SIZE: u16     = 0x0040;
+const NAME_TABLE_1_ADDRESS: u16 = 0x2400;
+const ATTRIBUTE_TABLE_1_ADDRESS: u16 = 0x27C0;
+const NAME_TABLE_2_ADDRESS: u16 = 0x2800;
+const ATTRIBUTE_TABLE_2_ADDRESS: u16 = 0x2BC0;
+const NAME_TABLE_3_ADDRESS: u16 = 0x2C00;
+const ATTRIBUTE_TABLE_3_ADDRESS: u16 = 0x2FC0;
+
+// --- joystick constants -----------------------------------------------------
+
+const JS_ZAPPERSPRITE: u8   = 0x10;
+const JS_ZAPPERTRIGGER: u8  = 0x08;
+const JS_ZAPPEREXPMASK: u8  = 0x06;
+const JS_DATA: u8           = 0x01;
+
+// --- button masks -----------------------------------------------------------
+
+const BUTTON_A: u8      = %10000000;
+const BUTTON_B: u8      = %01000000;
+const BUTTON_SELECT: u8 = %00100000;
+const BUTTON_START: u8  = %00010000;
+const BUTTON_UP: u8     = %00001000;
+const BUTTON_DOWN: u8   = %00000100;
+const BUTTON_LEFT: u8   = %00000010;
+const BUTTON_RIGHT: u8  = %00000001;

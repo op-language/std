@@ -1,9 +1,18 @@
-//! MOS 65SC02 CPU
+//! VLSI VL65NC02 CPU
 //!
 //! Registers, condition keywords, opcode mnemonics, addressing modes,
-//! and interrupt names for the MOS 65SC02 CPU. The 65SC02 extends the
-//! 6502 with additional opcodes and addressing modes. The 65SC02
-//! removes the undocumented opcodes.
+//! and interrupt names for the VLSI VL65NC02 CPU. The VL65NC02 is the
+//! custom CPU in the Atari Lynx. It implements the 65SC02 instruction
+//! set. The 65SC02 extends the 6502 with additional opcodes and
+//! addressing modes. The 65SC02 removes the undocumented opcodes.
+
+// Re-export the 6502 macros and temp variables.
+use std::cpu::mos6502::macros::*;
+use std::cpu::mos6502::ram::*;
+
+// --- Clock frequency -------------------------------------------------------
+
+const CLOCK_HZ: u32 = 4000000;
 
 // --- Status flags ----------------------------------------------------------
 
@@ -54,7 +63,7 @@ enum COND {
 
 // --- Opcode mnemonics ------------------------------------------------------
 //
-// The 65SC02 opcode table includes the 6502 base mnemonics plus the
+// The VL65NC02 opcode table includes the 6502 base mnemonics plus the
 // 65SC02 additional mnemonics. The 65SC02 removes the undocumented
 // opcodes.
 
@@ -143,7 +152,7 @@ enum ADDR_MODE {
 
 // --- Interrupt vectors -----------------------------------------------------
 //
-// The 65SC02 supports three interrupt vectors.
+// The VL65NC02 supports three interrupt vectors.
 
 enum INTERRUPT {
     reset,

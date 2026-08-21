@@ -1,11 +1,11 @@
-//! Test: mos65sc02-atari-lynx
+//! Test: vl65nc02-atari-lynx
 //!
 //! Verifies that the cfg predicates for cpu, manufacturer, machine,
-//! variant, and target match the triplet mos65sc02-atari-lynx.
+//! and target match the triplet vl65nc02-atari-lynx.
 
 use std::*;
 
-#[cfg(cpu = "mos65sc02")]
+#[cfg(cpu = "vl65NC02")]
 const _TEST_CPU: u8 = 0;
 
 #[cfg(manufacturer = "atari")]
@@ -14,5 +14,5 @@ const _TEST_MFR: u8 = 0;
 #[cfg(machine = "lynx")]
 const _TEST_MACHINE: u8 = 0;
 
-#[cfg(target = "mos65sc02-atari-lynx")]
+#[cfg(target = "vl65nc02-atari-lynx")]
 const _TEST_TARGET: u8 = 0;

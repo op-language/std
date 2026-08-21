@@ -1,0 +1,20 @@
+//! NES Shadow RAM Variables
+//!
+//! Shadow variables used by the NES video, IO, and mapper macros.
+//! The macros reference these variables by name.
+
+// --- video shadow variables -------------------------------------------------
+
+_ppu_ctl0: u8;
+_ppu_ctl1: u8;
+_pal_ptr: pointer;
+
+// --- IO shadow variables ---------------------------------------------------
+
+_joypad: u8;
+_joypad_prev: u8;
+
+// --- mapper shadow variables -----------------------------------------------
+
+pBankA000_prev: u8;
+pBankA000_cur: u8;

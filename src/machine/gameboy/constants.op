@@ -1,3 +1,140 @@
 //! Game Boy Constants
+//!
+//! Hardware register addresses, button masks, and clock frequency for
+//! the Nintendo Game Boy and Game Boy Color. Game Boy Color registers
+//! are gated on `#[cfg(variant = "color")]`.
 
-// TODO: populate
+// --- clock frequency -------------------------------------------------------
+
+const CLOCK_HZ: u32 = 4194304;
+
+// --- joypad register --------------------------------------------------------
+
+#[addr(0xFF00)]
+JOYPAD: u8;
+
+// --- serial registers ------------------------------------------------------
+
+#[addr(0xFF01)]
+SERIAL_DATA: u8;
+
+#[addr(0xFF02)]
+SERIAL_CONTROL: u8;
+
+// --- timer registers -------------------------------------------------------
+
+#[addr(0xFF04)]
+TIMER_DIV: u8;
+
+#[addr(0xFF05)]
+TIMER_TIMA: u8;
+
+#[addr(0xFF06)]
+TIMER_TMA: u8;
+
+#[addr(0xFF07)]
+TIMER_TAC: u8;
+
+// --- interrupt register -----------------------------------------------------
+
+#[addr(0xFFFF)]
+INTERRUPT_ENABLE: u8;
+
+// --- sound registers -------------------------------------------------------
+
+enum SOUND {
+    CH1_SWEEP       = 0xFF10,
+    CH1_DUTY        = 0xFF11,
+    CH1_VOL_ENV     = 0xFF12,
+    CH1_FREQ_LO     = 0xFF13,
+    CH1_FREQ_HI     = 0xFF14,
+    CH2_DUTY        = 0xFF16,
+    CH2_VOL_ENV     = 0xFF17,
+    CH2_FREQ_LO     = 0xFF18,
+    CH2_FREQ_HI     = 0xFF19,
+    CH3_ENABLE      = 0xFF1A,
+    CH3_LENGTH      = 0xFF1B,
+    CH3_VOL         = 0xFF1C,
+    CH3_FREQ_LO     = 0xFF1D,
+    CH3_FREQ_HI     = 0xFF1E,
+    CH4_LENGTH      = 0xFF20,
+    CH4_VOL_ENV     = 0xFF21,
+    CH4_FREQ        = 0xFF22,
+    CH4_COUNTER     = 0xFF23,
+    CHANNEL_CTRL    = 0xFF24,
+    OUTPUT_SEL      = 0xFF25,
+    SOUND_ON        = 0xFF26,
+}
+
+// --- LCD registers ---------------------------------------------------------
+
+enum LCD {
+    CONTROL         = 0xFF40,
+    STATUS          = 0xFF41,
+    SCROLL_Y       = 0xFF42,
+    SCROLL_X        = 0xFF43,
+    LINE            = 0xFF44,
+    LINE_COMPARE    = 0xFF45,
+    DMA             = 0xFF46,
+    BG_PALETTE      = 0xFF47,
+    SPRITE_PALETTE_0 = 0xFF48,
+    SPRITE_PALETTE_1 = 0xFF49,
+    WINDOW_Y        = 0xFF4A,
+    WINDOW_X        = 0xFF4B,
+}
+
+// --- Game Boy Color registers ----------------------------------------------
+//
+// These registers exist only on the Game Boy Color. The cfg gate
+// selects them when the variant is "color".
+
+#[cfg(variant = "color")]
+#[addr(0xFF4D)]
+KEY1: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF4F)]
+VRAM_BANK: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF51)]
+DMA_SOURCE_HIGH: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF52)]
+DMA_SOURCE_LOW: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF53)]
+DMA_DEST_HIGH: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF54)]
+DMA_DEST_LOW: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF55)]
+DMA_LENGTH: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF56)]
+DMA_MODE: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF6C)]
+BANK: u8;
+
+#[cfg(variant = "color")]
+#[addr(0xFF70)]
+RAM_BANK: u8;
+
+// --- button masks -----------------------------------------------------------
+
+const BUTTON_A: u8      = %00000001;
+const BUTTON_B: u8      = %00000010;
+const BUTTON_SELECT: u8 = %00000100;
+const BUTTON_START: u8  = %00001000;
+const BUTTON_RIGHT: u8  = %00010000;
+const BUTTON_LEFT: u8   = %00100000;
+const BUTTON_UP: u8     = %01000000;
+const BUTTON_DOWN: u8   = %10000000;

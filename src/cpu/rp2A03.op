@@ -1,9 +1,21 @@
-//! MOS 6502 CPU Family
+//! Ricoh RP2A03 CPU Family (NES NTSC)
 //!
 //! Status flags, registers, condition keywords, opcode mnemonics,
-//! addressing modes, and interrupt vector names for the MOS 6502 CPU
-//! family. This includes the MOS 6502, the MOS 65SC02, the Ricoh 2A03,
-//! and the Ricoh 2A07.
+//! addressing modes, and interrupt vector names for the Ricoh RP2A03 CPU.
+//! This is a MOS 6502 core without binary-coded decimal mode. The CLD and
+//! SED opcodes and the D status flag are removed because the chip lacks
+//! decimal-mode circuitry.
+
+// --- Clock frequency --------------------------------------------------------
+//
+// The RP2A03 runs at 1789773 Hz for the NTSC variant and 1662607 Hz for
+// the PAL variant. The value is selected by the variant cfg key.
+
+#[cfg(variant = "ntsc")]
+const CLOCK_HZ: u32 = 1789773;
+
+#[cfg(variant = "pal")]
+const CLOCK_HZ: u32 = 1662607;
 
 // --- Status flags ----------------------------------------------------------
 
@@ -11,7 +23,6 @@ enum STATUS {
     N = 0x80,
     V = 0x40,
     B = 0x10,
-    D = 0x08,
     I = 0x04,
     Z = 0x02,
     C = 0x01,
@@ -55,8 +66,8 @@ enum COND {
 
 // --- Opcode mnemonics ------------------------------------------------------
 //
-// The 6502 opcode table lists each mnemonic and the legal addressing modes.
-// The lib defines these as the set of valid opcode tokens for the lexer.
+// The RP2A03 opcode table lists each mnemonic and the legal addressing modes.
+// The CLD and SED opcodes are removed because the chip lacks decimal mode.
 
 enum OPCODE {
     ADC,
@@ -73,7 +84,6 @@ enum OPCODE {
     BVC,
     BVS,
     CLC,
-    CLD,
     CLI,
     CLV,
     CMP,
@@ -104,7 +114,6 @@ enum OPCODE {
     RTS,
     SBC,
     SEC,
-    SED,
     SEI,
     STA,
     STX,
@@ -161,7 +170,7 @@ enum ADDR_MODE {
 
 // --- Interrupt vectors -----------------------------------------------------
 //
-// The 6502 supports three interrupt vectors. The lib defines the names
+// The RP2A03 supports three interrupt vectors. The lib defines the names
 // reset, nmi, and irq for #[interrupt(...)].
 
 enum INTERRUPT {
@@ -177,3 +186,5 @@ pub use COND::*;
 pub use OPCODE::*;
 pub use ADDR_MODE::*;
 pub use INTERRUPT::*;
+use std::cpu::mos6502::macros::*;
+use std::cpu::mos6502::ram::*;

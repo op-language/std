@@ -1,14 +1,162 @@
 //! Motorola 68000 CPU
 //!
-//! The Motorola 68000 is a 32-bit CISC CPU. The CPU has eight 32-bit data
-//! registers and eight 32-bit address registers.
+//! Registers, condition keywords, opcode mnemonics, addressing modes,
+//! and interrupt names for the Motorola 68000 CPU. The 68000 is a
+//! 32-bit CISC CPU. The CPU has eight 32-bit data registers and eight
+//! 32-bit address registers.
 
-// TODO: populate with 68000 registers (d0-d7, a0-a7, usp, ssp, pc), condition
-// keywords (true, false, high, low_or_same, carry_clear, carry_set, not_equal,
-// equal, overflow_clear, overflow_set, plus, minus, greater_or_equal,
-// less_than, greater_than, less_or_equal), opcodes (MOVE, MOVEQ, MOVEM, LEA,
-// PEA, CLR, NOT, AND, OR, EOR, ADD, ADDA, ADDI, ADDQ, SUB, SUBA, SUBI, SUBQ,
-// MULU, MULS, DIVU, DIVS, NEG, NEGX, ABS, ASL, ASR, LSL, LSR, ROL, ROR, ROXL,
-// ROXR, CMP, CMPA, CMPI, TST, BTST, BSET, BCLR, BCHG, JMP, JSR, RTS, RTR,
-// RTE, Bcc, BRA, BSR, DBcc, CHK, TRAP, TRAPV, SWAP, EXG, EXT, LINK, UNLK,
-// RESET, NOP, STOP, ILLEGAL), and interrupt vectors (level 1-7, trap).
+// --- Registers -------------------------------------------------------------
+//
+// The lib defines the data registers, address registers, user stack
+// pointer, supervisor stack pointer, and program counter.
+
+enum CPU_REG {
+    d0  = 0,
+    d1  = 1,
+    d2  = 2,
+    d3  = 3,
+    d4  = 4,
+    d5  = 5,
+    d6  = 6,
+    d7  = 7,
+    a0  = 8,
+    a1  = 9,
+    a2  = 10,
+    a3  = 11,
+    a4  = 12,
+    a5  = 13,
+    a6  = 14,
+    a7  = 15,
+    usp = 16,
+    ssp = 17,
+    pc  = 18,
+}
+
+// --- Condition keywords ----------------------------------------------------
+//
+// The 68000 condition codes. The modifier keywords is, has, no, and
+// not may prefix a condition.
+
+enum COND {
+    true              = 0,
+    false             = 1,
+    high              = 2,
+    low_or_same       = 3,
+    carry_clear        = 4,
+    carry_set          = 5,
+    not_equal         = 6,
+    equal             = 7,
+    overflow_clear     = 8,
+    overflow_set       = 9,
+    plus              = 10,
+    minus             = 11,
+    greater_or_equal  = 12,
+    less_than         = 13,
+    greater_than      = 14,
+    less_or_equal     = 15,
+}
+
+// --- Opcode mnemonics ------------------------------------------------------
+//
+// The 68000 opcode table lists each mnemonic.
+
+enum OPCODE {
+    MOVE,
+    MOVEQ,
+    MOVEM,
+    LEA,
+    PEA,
+    CLR,
+    NOT,
+    AND,
+    OR,
+    EOR,
+    ADD,
+    ADDA,
+    ADDI,
+    ADDQ,
+    SUB,
+    SUBA,
+    SUBI,
+    SUBQ,
+    MULU,
+    MULS,
+    DIVU,
+    DIVS,
+    NEG,
+    NEGX,
+    ABS,
+    ASL,
+    ASR,
+    LSL,
+    LSR,
+    ROL,
+    ROR,
+    ROXL,
+    ROXR,
+    CMP,
+    CMPA,
+    CMPI,
+    TST,
+    BTST,
+    BSET,
+    BCLR,
+    BCHG,
+    JMP,
+    JSR,
+    RTS,
+    RTR,
+    RTE,
+    BRA,
+    BSR,
+    DBcc,
+    CHK,
+    TRAP,
+    TRAPV,
+    SWAP,
+    EXG,
+    EXT,
+    LINK,
+    UNLK,
+    RESET,
+    NOP,
+    STOP,
+    ILLEGAL,
+}
+
+// --- Addressing modes ------------------------------------------------------
+//
+// The lib defines the addressing mode prefix names.
+
+enum ADDR_MODE {
+    imm,
+    abs,
+    idx,
+    ind,
+    rel,
+    postinc,
+    predec,
+}
+
+// --- Interrupt vectors -----------------------------------------------------
+//
+// The 68000 supports seven interrupt priority levels and a trap
+// vector.
+
+enum INTERRUPT {
+    level1,
+    level2,
+    level3,
+    level4,
+    level5,
+    level6,
+    level7,
+    trap,
+}
+
+// Re-export the enum variants.
+pub use CPU_REG::*;
+pub use COND::*;
+pub use OPCODE::*;
+pub use ADDR_MODE::*;
+pub use INTERRUPT::*;

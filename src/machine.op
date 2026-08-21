@@ -55,9 +55,6 @@ mod snes;
 #[cfg(machine = "gameboy")]
 mod gameboy;
 
-#[cfg(machine = "gameboy-color")]
-mod gameboy_color;
-
 #[cfg(machine = "gamegear")]
 mod gamegear;
 
@@ -131,9 +128,6 @@ pub use snes::*;
 
 #[cfg(machine = "gameboy")]
 pub use gameboy::*;
-
-#[cfg(machine = "gameboy-color")]
-pub use gameboy_color::*;
 
 #[cfg(machine = "gamegear")]
 pub use gamegear::*;

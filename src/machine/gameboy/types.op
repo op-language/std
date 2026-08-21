@@ -1,0 +1,36 @@
+//! Game Boy Types
+//!
+//! Enums for joypad buttons, LCD status modes, and interrupt flags for
+//! the Nintendo Game Boy and Game Boy Color.
+
+// --- joypad buttons --------------------------------------------------------
+
+enum JOYPAD_BUTTON {
+    A      = 0x01,
+    B      = 0x02,
+    SELECT = 0x04,
+    START  = 0x08,
+    RIGHT  = 0x10,
+    LEFT   = 0x20,
+    UP     = 0x40,
+    DOWN   = 0x80,
+}
+
+// --- LCD status modes ------------------------------------------------------
+
+enum LCD_STATUS {
+    VBLANK   = 0,
+    HBLANK   = 0,
+    OAM      = 2,
+    TRANSFER = 3,
+}
+
+// --- interrupt flags -------------------------------------------------------
+
+enum INTERRUPT {
+    VBLANK  = 0x01,
+    LCD     = 0x02,
+    TIMER   = 0x04,
+    SERIAL  = 0x08,
+    JOYPAD  = 0x10,
+}

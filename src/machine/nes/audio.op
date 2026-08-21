@@ -1,0 +1,12 @@
+//! NES Audio
+//!
+//! Audio processor unit register definitions for the Nintendo
+//! Entertainment System. Ported from the HLAKit nes_audio.h header.
+
+use super::types::*;
+
+// --- audio register declarations -------------------------------------------
+//
+// The APU enum in types.op defines all audio register addresses.
+// The SND_CNT register at 0x4015 enables and disables the audio
+// channels. The SNDENABLE enum defines the channel enable bits.

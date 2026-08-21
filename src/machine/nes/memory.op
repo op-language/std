@@ -1,0 +1,159 @@
+//! NES Memory
+//!
+//! VRAM memory copy and fill macros and functions for the Nintendo
+//! Entertainment System. Ported from the HLAKit nes_memory.h and
+//! nes_memory.s files.
+
+use super::constants::*;
+use super::types::*;
+use super::macros::*;
+use std::cpu::mos6502::macros::*;
+use std::cpu::mos6502::ram::*;
+
+// --- inline memory macros ---------------------------------------------------
+
+inline fn vram_memcpy_inline(src, size) {
+    ldx #0
+    do {
+        lda src, x
+        vram_write_a()
+        inx
+        cpx size
+    } while (nonzero)
+}
+
+inline fn vram_memcpy_rev_inline(src, size) {
+    ldx size
+    do {
+        dex
+        lda src, x
+        vram_write_a()
+        txa
+    } while (nonzero)
+}
+
+inline fn vram_maskcpy_inline(src, size) {
+    ldx #0
+    do {
+        lda src, x
+        if (zero) {
+            vram_read_a()
+        } else {
+            vram_write_a()
+        }
+        inx
+        cpx size
+    } while (nonzero)
+}
+
+// --- memory functions -------------------------------------------------------
+
+fn vram_clear_name_tables() {
+    vram_set_address_i(NAME_TABLE_0_ADDRESS)
+    lda #0
+    ldy #16
+    do {
+        ldx #0
+        do {
+            vram_write_a()
+            dex
+        } while (nonzero)
+        dey
+    } while (nonzero)
+}
+
+fn vram_memset_name_table() {
+    ldy #NAMETABLE_HEIGHT / 2
+    do {
+        ldx #NAMETABLE_WIDTH / 4 * 2
+        do {
+            vram_write_a()
+            vram_write_a()
+            vram_write_a()
+            vram_write_a()
+            dex
+        } while (nonzero)
+        dey
+    } while (nonzero)
+}
+
+fn vram_memset_attribute_table() {
+    ldy #ATTRIBUTE_TABLE_SIZE
+    do {
+        vram_write_a()
+        dey
+    } while (nonzero)
+}
+
+fn vram_memset() {
+    do {
+        vram_write_a()
+        dey
+    } while (nonzero)
+}
+
+fn memset_ram_name_table() {
+    ldx #NAMETABLE_HEIGHT / 2
+    do {
+        ldy #0
+        do {
+            sta (_p_temp), y
+            iny
+            cpy #NAMETABLE_WIDTH * 2
+        } while (not equal)
+        pha
+        add_16_8(_p_temp, NAMETABLE_WIDTH * 2)
+        pla
+        dex
+    } while (nonzero)
+}
+
+fn memset_ram_name_n_attr_table() {
+    ldx #4
+    do {
+        ldy #0
+        do {
+            sta (_p_temp), y
+            iny
+        } while (nonzero)
+        inc _p_temp + 1
+        dex
+    } while (nonzero)
+}
+
+fn vram_memcpy_name_table() {
+    lda #0
+    ldx #NAMETABLE_HEIGHT
+    do {
+        ldy #0
+        do {
+            lda (_p_temp), y
+            vram_write_a()
+            iny
+            cpy #NAMETABLE_WIDTH
+        } while (nonzero)
+        add_16i(_p_temp, NAMETABLE_WIDTH)
+        dex
+    } while (nonzero)
+}
+
+fn vram_memcpy() {
+    ldy #0
+    do {
+        lda (_mem_src), y
+        vram_write_a()
+        iny
+        dex
+    } while (nonzero)
+}
+
+fn vram_memset_rows() {
+    do {
+        ldy #NAMETABLE_WIDTH
+        do {
+            vram_write_a()
+            dey
+        } while (nonzero)
+        dex
+    } while (nonzero)
+}

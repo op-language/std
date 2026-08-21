@@ -1,10 +1,199 @@
 //! WDC 65C816 CPU
 //!
-//! The WDC 65C816 is a 16-bit extension of the 65C02. The CPU has an 8-bit
-//! accumulator mode and a 16-bit accumulator mode. The CPU has an 8-bit
-//! index mode and a 16-bit index mode.
+//! Registers, condition keywords, opcode mnemonics, addressing modes,
+//! and interrupt names for the WDC 65C816 CPU. The 65C816 is a 16-bit
+//! extension of the 65C02. The CPU has an 8-bit accumulator mode and a
+//! 16-bit accumulator mode. The CPU has an 8-bit index mode and a 16-bit
+//! index mode.
 
-// TODO: populate with 65C816 additional registers (dbr, pbr, dp), additional
-// opcodes (REP, SEP, XBA, XCE, TCD, TDC, TCS, TSC, TXY, TYX, MVN, MVP, PEA,
-// PEI, PER, JML, JSL, RTL, COP, WAI, STP), and additional addressing modes
-// (absolute long, direct page, stack relative, block move).
+// --- Status flags ----------------------------------------------------------
+
+enum STATUS {
+    N = 0x80,
+    V = 0x40,
+    M = 0x20,
+    X = 0x10,
+    D = 0x08,
+    I = 0x04,
+    Z = 0x02,
+    C = 0x01,
+}
+
+// --- Registers -------------------------------------------------------------
+//
+// The lib defines the 6502 base registers and the 65C816 additional
+// registers.
+
+enum CPU_REG {
+    a   = 0,
+    x   = 1,
+    y   = 2,
+    sp  = 3,
+    pc  = 4,
+    dbr = 5,
+    pbr = 6,
+    dp  = 7,
+}
+
+// --- Condition keywords ----------------------------------------------------
+//
+// The lib defines the 6502 condition keywords.
+
+enum COND {
+    plus       = 0,
+    positive   = 0,
+    minus      = 1,
+    negative   = 1,
+    greater    = 0,
+    less       = 1,
+    overflow   = 2,
+    carry      = 3,
+    nonzero    = 4,
+    set        = 4,
+    true       = 4,
+    zero       = 5,
+    unset      = 5,
+    false      = 5,
+    clear      = 5,
+    equal      = 5,
+}
+
+// --- Opcode mnemonics ------------------------------------------------------
+//
+// The 65C816 opcode table includes the 6502 base mnemonics plus the
+// 65C816 additional mnemonics.
+
+enum OPCODE {
+    ADC,
+    AND,
+    ASL,
+    BCC,
+    BCS,
+    BEQ,
+    BIT,
+    BMI,
+    BNE,
+    BPL,
+    BRA,
+    BRK,
+    BVC,
+    BVS,
+    CLC,
+    CLD,
+    CLI,
+    CLV,
+    CMP,
+    COP,
+    CPX,
+    CPY,
+    DEC,
+    DEA,
+    DEX,
+    DEY,
+    EOR,
+    INC,
+    INA,
+    INX,
+    INY,
+    JML,
+    JMP,
+    JSL,
+    JSR,
+    LDA,
+    LDX,
+    LDY,
+    LSR,
+    MVP,
+    MVN,
+    NOP,
+    ORA,
+    PEA,
+    PEI,
+    PER,
+    PHA,
+    PHB,
+    PHD,
+    PHK,
+    PHP,
+    PHX,
+    PHY,
+    PLA,
+    PLB,
+    PLD,
+    PLP,
+    PLX,
+    PLY,
+    REP,
+    ROL,
+    ROR,
+    RTI,
+    RTL,
+    RTS,
+    SBC,
+    SEC,
+    SED,
+    SEI,
+    SEP,
+    STA,
+    STP,
+    STX,
+    STY,
+    STZ,
+    TAD,
+    TAS,
+    TCD,
+    TCS,
+    TDA,
+    TSA,
+    TDC,
+    TSC,
+    TAX,
+    TAY,
+    TSB,
+    TRB,
+    TXY,
+    TYA,
+    TYX,
+    WAI,
+    WDM,
+    XBA,
+    XCE,
+}
+
+// --- Addressing modes ------------------------------------------------------
+//
+// The lib defines the 6502 addressing modes plus the 65C816 additional
+// modes.
+
+enum ADDR_MODE {
+    zp,
+    abs,
+    rel,
+    ind,
+    idx,
+    ind_idx,
+    absolute_long,
+    direct_page,
+    stack_relative,
+    block_move,
+}
+
+// --- Interrupt vectors -----------------------------------------------------
+//
+// The 65C816 supports six interrupt vectors.
+
+enum INTERRUPT {
+    reset,
+    nmi,
+    irq,
+    abort,
+    cop,
+    brk,
+}
+
+// Re-export the enum variants.
+pub use CPU_REG::*;
+pub use COND::*;
+pub use OPCODE::*;
+pub use ADDR_MODE::*;
+pub use INTERRUPT::*;

@@ -1,9 +1,12 @@
-//! MOS 65SC02 CPU
+//! MOS 6502 CPU Family
 //!
-//! Registers, condition keywords, opcode mnemonics, addressing modes,
-//! and interrupt names for the MOS 65SC02 CPU. The 65SC02 extends the
-//! 6502 with additional opcodes and addressing modes. The 65SC02
-//! removes the undocumented opcodes.
+//! Status flags, registers, condition keywords, opcode mnemonics,
+//! addressing modes, and interrupt vector names for the MOS 6502 CPU
+//! family. This includes the MOS 6502, the MOS 65SC02, the Ricoh 2A03,
+//! and the Ricoh 2A07.
+
+mod macros;
+mod ram;
 
 // --- Status flags ----------------------------------------------------------
 
@@ -19,7 +22,8 @@ enum STATUS {
 
 // --- Registers -------------------------------------------------------------
 //
-// The lib defines cpu::a, cpu::x, and cpu::y as register references.
+// The lib defines cpu::a, cpu::x, and cpu::y as register references for
+// use in switch statements and operand expressions.
 
 enum CPU_REG {
     a = 0,
@@ -29,9 +33,9 @@ enum CPU_REG {
 
 // --- Condition keywords ----------------------------------------------------
 //
-// The lib defines the condition keywords for if, while, and do-while
-// tests. The modifier keywords is, has, no, and not may prefix a
-// condition.
+// The lib defines the following condition keywords for if, while, and
+// do-while tests. The modifier keywords is, has, no, and not may prefix a
+// condition. The compiler treats them as no-ops.
 
 enum COND {
     plus       = 0,
@@ -54,9 +58,8 @@ enum COND {
 
 // --- Opcode mnemonics ------------------------------------------------------
 //
-// The 65SC02 opcode table includes the 6502 base mnemonics plus the
-// 65SC02 additional mnemonics. The 65SC02 removes the undocumented
-// opcodes.
+// The 6502 opcode table lists each mnemonic and the legal addressing modes.
+// The lib defines these as the set of valid opcode tokens for the lexer.
 
 enum OPCODE {
     ADC,
@@ -69,7 +72,6 @@ enum OPCODE {
     BMI,
     BNE,
     BPL,
-    BRA,
     BRK,
     BVC,
     BVS,
@@ -81,12 +83,10 @@ enum OPCODE {
     CPX,
     CPY,
     DEC,
-    DEA,
     DEX,
     DEY,
     EOR,
     INC,
-    INA,
     INX,
     INY,
     JMP,
@@ -99,12 +99,8 @@ enum OPCODE {
     ORA,
     PHA,
     PHP,
-    PHX,
-    PHY,
     PLA,
     PLP,
-    PLX,
-    PLY,
     ROL,
     ROR,
     RTI,
@@ -116,21 +112,46 @@ enum OPCODE {
     STA,
     STX,
     STY,
-    STZ,
     TAX,
     TAY,
-    TRB,
-    TSB,
     TSX,
     TXA,
     TXS,
     TYA,
 }
 
+// --- Undocumented opcodes --------------------------------------------------
+//
+// The 6502 has undocumented opcodes that real hardware executes. The lib
+// defines them as legal mnemonics. A program may use them with
+// #[cfg(feature = "undocumented")].
+
+#[cfg(feature = "undocumented")]
+enum UNDOC_OPCODE {
+    ALR,
+    ANC,
+    ANE,
+    ARR,
+    DCP,
+    ISC,
+    LAS,
+    LAX,
+    LXA,
+    RLA,
+    RRA,
+    SAX,
+    SHA,
+    SHX,
+    SHY,
+    SLO,
+    SRE,
+    TAS,
+    USBC,
+}
+
 // --- Addressing modes ------------------------------------------------------
 //
-// The lib defines the 6502 addressing modes plus the zero-page-indirect
-// addressing mode.
+// The lib defines the addressing mode prefix names.
 
 enum ADDR_MODE {
     zp,
@@ -143,7 +164,8 @@ enum ADDR_MODE {
 
 // --- Interrupt vectors -----------------------------------------------------
 //
-// The 65SC02 supports three interrupt vectors.
+// The 6502 supports three interrupt vectors. The lib defines the names
+// reset, nmi, and irq for #[interrupt(...)].
 
 enum INTERRUPT {
     reset,
@@ -151,9 +173,12 @@ enum INTERRUPT {
     irq,
 }
 
-// Re-export the enum variants.
+// Re-export the register enum variants so `cpu::a`, `cpu::x`, `cpu::y`
+// work after `use std::*;` or `use std::cpu::*;`.
 pub use CPU_REG::*;
 pub use COND::*;
 pub use OPCODE::*;
 pub use ADDR_MODE::*;
 pub use INTERRUPT::*;
+pub use macros::*;
+pub use ram::*;

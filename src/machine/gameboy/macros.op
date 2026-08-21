@@ -1,0 +1,47 @@
+//! Game Boy Macros
+//!
+//! System inline macros for the Nintendo Game Boy and Game Boy Color.
+
+use super::constants::*;
+use super::types::*;
+
+// --- interrupt control -----------------------------------------------------
+
+inline fn enable_interrupts() {
+    ei
+}
+
+inline fn disable_interrupts() {
+    di
+}
+
+// --- joypad ----------------------------------------------------------------
+
+inline fn read_joypad() {
+    lda #0x20
+    sta JOYPAD
+    lda JOYPAD
+    and #0x0F
+    sta _joypad_raw
+    lda #0x10
+    sta JOYPAD
+    lda JOYPAD
+    and #0x0F
+    sta _joypad_raw + 1
+}
+
+// --- vblank wait ------------------------------------------------------------
+
+inline fn vblank_wait() {
+    do {
+        lda LCD::STATUS
+        and #3
+    } while (not zero)
+}
+
+// --- DMA copy ---------------------------------------------------------------
+
+inline fn dma_copy(src) {
+    lda #hi!(src)
+    sta LCD::DMA
+}
