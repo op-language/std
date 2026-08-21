@@ -1,10 +1,12 @@
 //! NES Macros
 //!
-//! System inline macros for the Nintendo Entertainment System. Ported from
-//! the HLAKit NES system headers and the nes-code.op example.
+//! System inline macros for the Nintendo Entertainment System. Ported
+//! from the HLAKit NES system headers and the nes-code.op example.
 
 use super::constants::*;
 use super::types::*;
+use super::ram::*;
+use std::cpu::mos6502::macros::*;
 
 // --- interrupt control -----------------------------------------------------
 
@@ -36,7 +38,122 @@ inline fn system_initialize() {
     vram_clear_address()
 }
 
-// --- vblank wait -----------------------------------------------------------
+// --- PPU control register 0 -----------------------------------------------
+
+inline fn ppu_ctl0_assign(newctl) {
+    lda newctl
+    sta _ppu_ctl0
+    sta PPU::CNT0
+}
+
+inline fn ppu_ctl0_set(mask) {
+    lda _ppu_ctl0
+    ora #mask
+    sta _ppu_ctl0
+    sta PPU::CNT0
+}
+
+inline fn ppu_ctl0_clear(mask) {
+    lda _ppu_ctl0
+    and #!mask
+    sta _ppu_ctl0
+    sta PPU::CNT0
+}
+
+inline fn ppu_ctl0_adjust(clearmask, setmask) {
+    lda _ppu_ctl0
+    and #!clearmask
+    ora #setmask
+    sta _ppu_ctl0
+    sta PPU::CNT0
+}
+
+inline fn ppu_ctl0_xor(mask) {
+    lda _ppu_ctl0
+    eor #mask
+    sta _ppu_ctl0
+    sta PPU::CNT0
+}
+
+inline fn ppu_ctl0_test(mask) {
+    lda mask
+    bit _ppu_ctl0
+}
+
+inline fn ppu_enable_nmi() {
+    ppu_ctl0_set(CR_NMI)
+}
+
+inline fn ppu_disable_nmi() {
+    ppu_ctl0_clear(CR_NMI)
+}
+
+inline fn ppu_turn_off() {
+    ppu_ctl0_assign(0)
+    vblank_wait()
+    ppu_ctl1_assign(0)
+    sta PPU::BG_SCROLL
+    sta PPU::BG_SCROLL
+}
+
+inline fn ppu_turn_on_draw() {
+    ppu_enable_nmi()
+    ppu_ctl1_set(CR_SPRITESVISIBLE | CR_BACKVISIBLE)
+}
+
+inline fn ppu_turn_off_draw() {
+    ppu_disable_nmi()
+    ppu_ctl1_clear(CR_SPRITESVISIBLE | CR_BACKVISIBLE)
+}
+
+inline fn ppu_set_nametable(nametable) {
+    ppu_ctl0_adjust(CR_NAMETABLEBITS, nametable)
+}
+
+inline fn ppu_xor_nametable() {
+    ppu_ctl0_xor(CR_NAMETABLEBITS)
+}
+
+// --- PPU control register 1 -----------------------------------------------
+
+inline fn ppu_ctl1_assign(newctl) {
+    lda newctl
+    sta _ppu_ctl1
+    sta PPU::CNT1
+}
+
+inline fn ppu_ctl1_set(mask) {
+    lda _ppu_ctl1
+    ora #mask
+    sta _ppu_ctl1
+    sta PPU::CNT1
+}
+
+inline fn ppu_ctl1_clear(mask) {
+    lda _ppu_ctl1
+    and #!mask
+    sta _ppu_ctl1
+    sta PPU::CNT1
+}
+
+inline fn ppu_ctl1_adjust(clearmask, setmask) {
+    lda _ppu_ctl1
+    and #!clearmask
+    ora #setmask
+    sta _ppu_ctl1
+    sta PPU::CNT1
+}
+
+inline fn ppu_ctl1_test(mask) {
+    lda mask
+    bit _ppu_ctl1
+}
+
+inline fn ppu_set_palette_intensity(newbits) {
+    ppu_ctl1_adjust(CR_PALETTEINTENSITY, newbits)
+}
+
+// --- scanline --------------------------------------------------------------
 
 inline fn vblank_wait() {
     do {
@@ -55,7 +172,30 @@ inline fn vblank_wait_full() {
     unvblank_wait()
 }
 
+inline fn vblank_wait_for(amount) {
+    ldx amount
+    do {
+        vblank_wait_full()
+        dex
+    } while (nonzero)
+}
+
+inline fn test_scanline() {
+    lda PPU::STATUS
+    and #ST_SCANSPROVERFLOW
+}
+
+inline fn ppu_clean_latch() {
+    lda PPU::STATUS
+}
+
 // --- VRAM addressing -------------------------------------------------------
+
+inline fn vram_clear_address() {
+    lda #0
+    sta PPU::ADDRESS
+    sta PPU::ADDRESS
+}
 
 inline fn vram_set_address_i(addr) {
     lda PPU::STATUS
@@ -65,10 +205,17 @@ inline fn vram_set_address_i(addr) {
     sta PPU::ADDRESS
 }
 
-inline fn vram_clear_address() {
-    lda #0
+inline fn vram_set_address(newaddress) {
+    ppu_clean_latch()
+    lda newaddress + 1
     sta PPU::ADDRESS
+    lda newaddress + 0
     sta PPU::ADDRESS
+}
+
+inline fn vram_set_scroll(x, y) {
+    assign(PPU::BG_SCROLL, x)
+    assign(PPU::BG_SCROLL, y)
 }
 
 // --- VRAM data -------------------------------------------------------------
@@ -82,6 +229,33 @@ inline fn vram_write_a() {
     sta PPU::IO
 }
 
+inline fn vram_write_regx() {
+    stx PPU::IO
+}
+
+inline fn vram_write_16(value) {
+    assign(PPU::IO, value + 0)
+    assign(PPU::IO, value + 1)
+}
+
+inline fn vram_write_16_i(value) {
+    assign(PPU::IO, hi!(value))
+    assign(PPU::IO, lo!(value))
+}
+
+inline fn vram_read(dest) {
+    assign(dest, PPU::IO)
+}
+
+inline fn vram_read_a() {
+    lda PPU::IO
+}
+
+inline fn vram_read_16(dest) {
+    assign(dest + 0, PPU::IO)
+    assign(dest + 1, PPU::IO)
+}
+
 // --- video control ---------------------------------------------------------
 
 inline fn turn_video_on() {
@@ -90,6 +264,29 @@ inline fn turn_video_on() {
 
 inline fn turn_video_off() {
     assign(PPU::CNT1, 0)
+}
+
+// --- sprites ---------------------------------------------------------------
+
+inline fn vram_set_sprite_address(newaddress) {
+    assign(PPU::SPR_ADDRESS, newaddress + 1)
+    assign(PPU::SPR_ADDRESS, newaddress + 0)
+}
+
+inline fn vram_set_sprite_address_i(newaddress) {
+    assign(PPU::SPR_ADDRESS, hi!(newaddress))
+    assign(PPU::SPR_ADDRESS, lo!(newaddress))
+}
+
+inline fn vram_set_sprite_data(x, y, tile, attributes) {
+    assign(PPU::SPR_IO, y)
+    assign(PPU::SPR_IO, tile)
+    assign(PPU::SPR_IO, attributes)
+    assign(PPU::SPR_IO, x)
+}
+
+inline fn vram_sprite_dma_copy(oamptr) {
+    assign(PPU::SPR_DMA, hi!(oamptr))
 }
 
 // --- assignment helpers ----------------------------------------------------

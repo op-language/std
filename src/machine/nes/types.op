@@ -11,15 +11,53 @@ enum PPU {
     STATUS    = 0x2002,
     ADDRESS   = 0x2006,
     IO        = 0x2007,
+    SPR_ADDRESS = 0x2003,
+    SPR_IO    = 0x2004,
+    SPR_DMA   = 0x4014,
     BG_SCROLL = 0x2005,
 }
 
-// --- PPU sprite registers --------------------------------------------------
+// --- joystick registers ----------------------------------------------------
 
-enum SPR {
-    ADDRESS = 0x2003,
-    IO      = 0x2004,
-    DMA     = 0x4014,
+enum JOYSTICK {
+    CNT0 = 0x4016,
+    CNT1 = 0x4017,
+}
+
+// --- APU registers ---------------------------------------------------------
+
+enum APU {
+    SQUAREWAVEA_CNT0    = 0x4000,
+    SQUAREWAVEA_CNT1    = 0x4001,
+    SQUAREWAVEA_FREQ0   = 0x4002,
+    SQUAREWAVEA_FREQ1   = 0x4003,
+    SQUAREWAVEB_CNT0    = 0x4004,
+    SQUAREWAVEB_CNT1    = 0x4005,
+    SQUAREWAVEB_FREQ0   = 0x4006,
+    SQUAREWAVEB_FREQ1   = 0x4007,
+    TRIANGLEWAVE_CNT0   = 0x4008,
+    TRIANGLEWAVE_CNT1   = 0x4009,
+    TRIANGLEWAVE_FREQ0  = 0x400A,
+    TRIANGLEWAVE_FREQ1  = 0x400B,
+    NOISE_CNT0          = 0x400C,
+    NOISE_CNT1          = 0x400D,
+    NOISE_FREQ0         = 0x400E,
+    NOISE_FREQ1         = 0x400F,
+    PCM_CNT             = 0x4010,
+    PCM_VOLUMECNT       = 0x4011,
+    PCM_ADDRESS         = 0x4012,
+    PCM_LENGTH          = 0x4013,
+    SND_CNT             = 0x4015,
+}
+
+// --- sound enable flags ----------------------------------------------------
+
+enum SNDENABLE {
+    SQUARE_0  = %00000001,
+    SQUARE_1  = %00000010,
+    TRIANGLE  = %00000100,
+    NOISE     = %00001000,
+    DMC       = %00010000,
 }
 
 // --- background colors -----------------------------------------------------
@@ -44,6 +82,22 @@ struct SCROLL {
     flags: u8,
     x: u16,
     y: u16,
+}
+
+// --- palette struct types --------------------------------------------------
+
+struct PALENT {
+    colBackground: u8,
+    col1: u8,
+    col2: u8,
+    col3: u8,
+}
+
+struct PALETTE {
+    pal0: PALENT,
+    pal1: PALENT,
+    pal2: PALENT,
+    pal3: PALENT,
 }
 
 // --- type aliases ----------------------------------------------------------

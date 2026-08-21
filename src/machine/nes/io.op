@@ -1,0 +1,53 @@
+//! NES IO
+//!
+//! Joystick register definitions and game controller polling macros
+//! for the Nintendo Entertainment System. Ported from the HLAKit
+//! nes_io.h header.
+
+use super::constants::*;
+use super::types::*;
+use super::ram::*;
+use std::cpu::mos6502::macros::*;
+
+// --- joystick macros -------------------------------------------------------
+
+inline fn reset_joystick() {
+    assign(JOYSTICK::CNT0, 1)
+    assign(JOYSTICK::CNT0, 0)
+}
+
+inline fn read_joystick0() {
+    lda JOYSTICK::CNT0
+    and #1
+}
+
+inline fn read_joystick1() {
+    lda JOYSTICK::CNT1
+    and #1
+}
+
+inline fn test_joystick1(buttonmask) {
+    lda _joypad
+    and buttonmask
+}
+
+inline fn test_joystick1_prev(buttonmask) {
+    lda _joypad_prev
+    and buttonmask
+}
+
+inline fn test_button_release(buttonmask) {
+    test_joystick1(buttonmask)
+    if (zero) {
+        test_joystick1_prev(buttonmask)
+    }
+    eor #0xFF
+}
+
+inline fn test_button_press(buttonmask) {
+    test_joystick1(buttonmask)
+    if (nonzero) {
+        test_joystick1_prev(buttonmask)
+        eor #0xFF
+    }
+}
