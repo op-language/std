@@ -894,15 +894,15 @@ inline fn div(dest, amount) {
     ldx #0
     lda amount
     while (nonzero) {
-        bmi div_done_remainder
+        bmi 'div_done_remainder
         inx
         sec
         sbc dest
     }
-    jmp div_done
-div_done_remainder:
+    jmp 'div_done
+'div_done_remainder:
     dex
-div_done:
+'div_done:
     stx dest
 }
 
@@ -911,19 +911,20 @@ inline fn div_with_rem(dest, amount) {
     ldx #0
     lda dest
     while (nonzero) {
-        bmi div_done_remainder
+        bmi 'div_done_remainder
         inx
         sec
         sbc amount
     }
-    assign(_b_remainder, #0)
-    jmp div_done
-div_done_remainder:
+    lda #0
+    sta _b_remainder
+    jmp 'div_done
+'div_done_remainder:
     clc
     adc amount
     sta _b_remainder
     dex
-div_done:
+'div_done:
     stx dest
 }
 
@@ -1167,7 +1168,7 @@ inline fn memset_inline(memdest, value, memsize) {
 
 // --- Jump macros ------------------------------------------------------------
 
-fn noreturn jsrind_f() {
+noreturn fn jsrind_f() {
     jmp (_jsrind_temp)
 }
 

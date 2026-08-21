@@ -5,18 +5,18 @@
 
 // --- standard temp variables ------------------------------------------------
 
-byte _b_temp;
-word _w_temp;
-pointer _p_temp;
-pointer _jsrind_temp;
+_b_temp: u8;
+_w_temp: u16;
+_p_temp: pointer;
+_jsrind_temp: pointer;
 
 // --- math temp variables ----------------------------------------------------
 
-byte _b_remainder;
-byte _random_value;
-byte _random_ticks;
+_b_remainder: u8;
+_random_value: u8;
+_random_ticks: u8;
 
 // --- memory temp variables --------------------------------------------------
 
-pointer _mem_src;
-pointer _mem_dest;
+_mem_src: pointer;
+_mem_dest: pointer;
