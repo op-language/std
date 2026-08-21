@@ -1,11 +1,11 @@
-//! Test: z80-nintendo-gameboy
+//! Test: sm83-nintendo-gameboy
 //!
 //! Verifies that the cfg predicates for cpu, manufacturer, machine,
-//! variant, and target match the triplet z80-nintendo-gameboy.
+//! and target match the triplet sm83-nintendo-gameboy.
 
 use std::*;
 
-#[cfg(cpu = "z80")]
+#[cfg(cpu = "sm83")]
 const _TEST_CPU: u8 = 0;
 
 #[cfg(manufacturer = "nintendo")]
@@ -14,5 +14,5 @@ const _TEST_MFR: u8 = 0;
 #[cfg(machine = "gameboy")]
 const _TEST_MACHINE: u8 = 0;
 
-#[cfg(target = "z80-nintendo-gameboy")]
+#[cfg(target = "sm83-nintendo-gameboy")]
 const _TEST_TARGET: u8 = 0;

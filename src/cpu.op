@@ -28,6 +28,9 @@ mod rp2A07;
 #[cfg(cpu = "vl65NC02")]
 mod vl65nc02;
 
+#[cfg(cpu = "sm83")]
+mod sm83;
+
 // --- Re-export the selected CPU module so `cpu::*` works flat ---------------
 
 #[cfg(cpu = "mos6502")]
@@ -53,3 +56,6 @@ pub use rp2A07::*;
 
 #[cfg(cpu = "vl65NC02")]
 pub use vl65nc02::*;
+
+#[cfg(cpu = "sm83")]
+pub use sm83::*;
