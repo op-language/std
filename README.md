@@ -16,23 +16,32 @@ src/
   lib.op           Root: pub mod cpu; pub mod machine;
   cpu.op           CPU module: cfg-guarded mod decls + pub use re-exports
   cpu/
-    mos6502.op     MOS 6502 CPU family (populated)
-    mos65sc02.op   MOS 65SC02 (stub)
-    wdc65c816.op   WDC 65C816 (stub)
-    m68000.op      Motorola 68000 (stub)
-    z80.op         Zilog Z80 / Sharp LR35902 (stub)
+    mos6502/       MOS 6502 CPU family (mod.op, macros.op, ram.op)
+    mos65sc02.op   MOS 65SC02 (populated)
+    wdc65c816.op   WDC 65C816 (populated)
+    m68000.op      Motorola 68000 (populated)
+    z80.op         Zilog Z80 (populated)
+    rp2A03.op      Ricoh RP2A03 (NES NTSC)
+    rp2A07.op      Ricoh RP2A07 (NES PAL)
+    vl65nc02.op    VLSI VL65NC02 (Atari Lynx)
+    sm83.op        Sharp SM83 (Game Boy / Game Boy Color)
   machine.op       Machine module: cfg-guarded mod decls + pub use re-exports
   machine/
-    nes.op         NES module: mod constants; mod types; mod macros;
+    nes.op         NES module: mod constants; mod types; mod macros; mod io; mod audio; mod mappers; mod memory; mod palette; mod ram;
     nes/
-      constants.op NES constants (REFRESH_HZ, CR_*, ST_*, addresses)
-      types.op      NES types (PPU, SPR, COLOUR enums, OAM_ENTRY, SCROLL)
-      macros.op     NES inline macros (system init, vblank, VRAM, video)
-    lynx.op        Lynx module: mod constants; mod macros; mod loader;
+      constants.op NES constants (REFRESH_HZ, CR_*, ST_*, addresses, buttons)
+      types.op     NES types (PPU, JOYSTICK, APU, SNDENABLE, COLOUR, OAM_ENTRY, PALETTE)
+      macros.op    NES inline macros (system init, vblank, VRAM, video, sprites)
+      io.op        NES joystick macros (read, test, poll)
+      audio.op     NES APU register definitions
+      mappers.op   NES MMC5 mapper enum and bank switching macros
+      memory.op    NES VRAM memory copy and fill macros and functions
+      palette.op   NES palette set and write macros and functions
+      ram.op       NES shadow RAM variables (_ppu_ctl0, _joypad, etc.)
+    lynx.op        Lynx module: mod constants; mod macros;
     lynx/
       constants.op Lynx constants (cart I/O, Mikey registers, ROM funcs)
-      macros.op     Lynx inline macros (set_cart_segment_address)
-      loader.op     Lynx loader stubs (micro loader, secondary loader)
+      macros.op    Lynx inline macros (set_cart_segment_address)
     apple_ii.op    Apple II (stub)
     apple_ii/
       constants.op  Apple II constants (stub)
@@ -49,8 +58,7 @@ src/
     sega_genesis/   Sega Genesis (stub)
     apple_iigs/     Apple IIgs (stub)
     snes/           Super Nintendo Entertainment System (stub)
-    gameboy/        Nintendo Game Boy (stub)
-    gameboy_color/  Nintendo Game Boy Color (stub)
+    gameboy/        Nintendo Game Boy (populated)
     gamegear/       Sega Game Gear (stub)
     mastersystem/   Sega Master System (stub)
     sg1000/         Sega SG-1000 (stub)
@@ -76,7 +84,7 @@ when a ROM project includes it and builds with a target flag.
 | `mos6502-atari-2600` | MOS 6502 | Atari 2600 |
 | `mos6502-atari-5200` | MOS 6502 | Atari 5200 |
 | `mos6502-atari-7800` | MOS 6502 | Atari 7800 |
-| `mos65sc02-atari-lynx` | MOS 65SC02 | Atari Lynx |
+| `vl65nc02-atari-lynx` | VLSI VL65NC02 | Atari Lynx |
 | `mos6502-commodore-64` | MOS 6502 | Commodore 64 |
 | `mos6502-nec-pcengine` | MOS 6502 | NEC PC Engine |
 | `rp2A03-nintendo-nes-ntsc` | Ricoh RP2A03 | NES NTSC |
@@ -86,8 +94,8 @@ when a ROM project includes it and builds with a target flag.
 | `wdc65c816-apple-iigs` | WDC 65C816 | Apple IIgs |
 | `wdc65c816-nintendo-snes` | WDC 65C816 | SNES |
 | `z80-neogeo-aes` | Zilog Z80 | Neo Geo AES |
-| `z80-nintendo-gameboy` | Sharp LR35902 | Game Boy |
-| `z80-nintendo-gameboy-color` | Sharp LR35902 | Game Boy Color |
+| `sm83-nintendo-gameboy` | Sharp SM83 | Game Boy |
+| `sm83-nintendo-gameboy-color` | Sharp SM83 | Game Boy Color |
 | `z80-sega-gamegear` | Zilog Z80 | Sega Game Gear |
 | `z80-sega-genesis` | Zilog Z80 | Sega Genesis |
 | `z80-sega-mastersystem` | Zilog Z80 | Sega Master System |
