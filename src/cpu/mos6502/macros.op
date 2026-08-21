@@ -1,0 +1,1256 @@
+//! mos6502 HLAKit Macro Ports
+//!
+//! Assignment, bitwise, boolean, math, stack, memory, and jump macros
+//! ported from the HLAKit 6502 headers. All copyright headers are
+//! removed. The macros use the temp variables from `ram.op`.
+
+use super::ram::*;
+
+// --- 8-bit assignment macros ------------------------------------------------
+
+inline fn assign(dest, value) {
+    lda value
+    sta dest
+}
+
+inline fn assign_x(dest, value) {
+    lda value
+    sta dest, x
+}
+
+inline fn x_assign_x(dest, src) {
+    lda src, x
+    sta dest, x
+}
+
+inline fn x_assign_y(dest, src) {
+    lda src, x
+    sta dest, y
+}
+
+inline fn assign_y(dest, value) {
+    lda value
+    sta dest, y
+}
+
+inline fn x_assign(dest, src) {
+    lda src, x
+    sta dest
+}
+
+inline fn y_assign(dest, src) {
+    lda src, y
+    sta dest
+}
+
+inline fn assign_ind(dest, value) {
+    lda value
+    sta (dest)
+}
+
+inline fn assign_ind_y(dest, value) {
+    lda value
+    sta (dest), y
+}
+
+inline fn ind_x_assign(dest, src) {
+    lda (src, x)
+    sta dest
+}
+
+inline fn ind_y_assign(dest, src) {
+    lda (src), y
+    sta dest
+}
+
+// --- 16-bit assignment macros ------------------------------------------------
+
+inline fn assign_16_8(dest, value) {
+    lda value
+    sta dest + 0
+    lda #0
+    sta dest + 1
+}
+
+inline fn assign_16_8_x(dest, value) {
+    lda value
+    sta dest + 0, x
+    lda #0
+    sta dest + 1, x
+}
+
+inline fn assign_16_8_y(dest, value) {
+    lda value
+    sta dest + 0, y
+    lda #0
+    sta dest + 1, y
+}
+
+inline fn assign_16_16(dest, value) {
+    lda value + 0
+    sta dest + 0
+    lda value + 1
+    sta dest + 1
+}
+
+inline fn assign_16_16_x(dest, value) {
+    lda value + 0
+    sta dest + 0, x
+    lda value + 1
+    sta dest + 1, x
+}
+
+inline fn y_assign_16_16_x(dest, value) {
+    lda value + 0, y
+    sta dest + 0, x
+    lda value + 1, y
+    sta dest + 1, x
+}
+
+inline fn assign_16_16_y(dest, value) {
+    lda value + 0
+    sta dest + 0, y
+    lda value + 1
+    sta dest + 1, y
+}
+
+inline fn ind_assign_16_16_x(dest, value) {
+    ldy #0
+    lda (value), y
+    sta dest + 0, x
+    iny
+    lda (value), y
+    sta dest + 1, x
+}
+
+inline fn x_assign_16_16(dest, value) {
+    lda value + 0, x
+    sta dest + 0
+    lda value + 1, x
+    sta dest + 1
+}
+
+inline fn x_assign_16_16_x(dest, value) {
+    lda value + 0, x
+    sta dest + 0, x
+    lda value + 1, x
+    sta dest + 1, x
+}
+
+inline fn y_ind_assign_16_16(dest, value) {
+    lda (value), y
+    sta dest + 0
+    iny
+    lda (value), y
+    sta dest + 1
+}
+
+inline fn y_assign_16_16(dest, value) {
+    lda value + 0, y
+    sta dest + 0
+    lda value + 1, y
+    sta dest + 1
+}
+
+inline fn assign_16i(dest, value) {
+    lda #lo!(value)
+    sta dest + 0
+    lda #hi!(value)
+    sta dest + 1
+}
+
+inline fn assign_16i_x(dest, value) {
+    lda #lo!(value)
+    sta dest + 0, x
+    lda #hi!(value)
+    sta dest + 1, x
+}
+
+inline fn assign_16i_y(dest, value) {
+    lda #lo!(value)
+    sta dest + 0, y
+    lda #hi!(value)
+    sta dest + 1, y
+}
+
+inline fn zero_16(dest) {
+    lda #0
+    sta dest + 0
+    sta dest + 1
+}
+
+inline fn zero_32(dest) {
+    lda #0
+    sta dest + 0
+    sta dest + 1
+    sta dest + 2
+    sta dest + 3
+}
+
+inline fn zero_16_x(dest) {
+    lda #0
+    sta dest + 0, x
+    sta dest + 1, x
+}
+
+inline fn zero_16_y(dest) {
+    lda #0
+    sta dest + 0, y
+    sta dest + 1, y
+}
+
+inline fn tyx() {
+    tya
+    tax
+}
+
+inline fn txy() {
+    txa
+    tay
+}
+
+// --- Bit test macros --------------------------------------------------------
+
+inline fn test(dest, mask) {
+    lda mask
+    bit dest
+}
+
+inline fn test_x(dest, mask) {
+    lda dest, x
+    and mask
+}
+
+inline fn test_16_8(dest, mask) {
+    lda mask + 0
+    bit dest + 0
+}
+
+inline fn test_16_16(dest, mask) {
+    lda mask + 0
+    bit dest + 0
+    if (zero) {
+        lda mask + 1
+        bit dest + 1
+    }
+}
+
+inline fn test_16i(dest, mask) {
+    lda #lo!(mask)
+    bit dest + 0
+    if (zero) {
+        lda #hi!(mask)
+        bit dest + 1
+    }
+}
+
+// --- Bitwise OR macros ------------------------------------------------------
+
+inline fn or(dest, mask) {
+    lda dest
+    ora mask
+    sta dest
+}
+
+inline fn or_x_a(dest) {
+    ora dest, x
+    sta dest, x
+}
+
+inline fn or_x(dest, mask) {
+    lda mask
+    or_x_a(dest)
+}
+
+inline fn or_y_a(dest) {
+    ora dest, y
+    sta dest, y
+}
+
+inline fn or_y(dest, mask) {
+    lda mask
+    or_y_a(dest)
+}
+
+inline fn or_16_8(dest, mask) {
+    lda dest + 0
+    ora mask
+    sta dest + 0
+}
+
+inline fn or_16_8_x(dest, mask) {
+    lda dest + 0, x
+    ora mask
+    sta dest + 0, x
+}
+
+inline fn or_16_16(dest, mask) {
+    lda dest + 0
+    ora mask + 0
+    sta dest + 0
+    lda dest + 1
+    ora mask + 1
+    sta dest + 1
+}
+
+inline fn or_16_16_x(dest, mask) {
+    lda dest + 0
+    ora mask + 0
+    sta dest + 0, x
+    lda dest + 1
+    ora mask + 1
+    sta dest + 1, x
+}
+
+inline fn or_16i(dest, mask) {
+    lda dest + 0
+    ora #lo!(mask)
+    sta dest + 0
+    lda dest + 1
+    ora #hi!(mask)
+    sta dest + 1
+}
+
+inline fn or_16i_x(dest, mask) {
+    lda dest + 0, x
+    ora #lo!(mask)
+    sta dest + 0, x
+    lda dest + 1, x
+    ora #hi!(mask)
+    sta dest + 1, x
+}
+
+// --- Bitwise XOR macros -----------------------------------------------------
+
+inline fn xor(dest, mask) {
+    lda dest
+    eor mask
+    sta dest
+}
+
+inline fn xor_x(dest, mask) {
+    lda dest, x
+    eor mask
+    sta dest, x
+}
+
+inline fn xor_16_8(dest, mask) {
+    lda dest + 0
+    eor mask
+    sta dest + 0
+}
+
+inline fn xor_16_8_x(dest, mask) {
+    lda dest + 0, x
+    eor mask
+    sta dest + 0, x
+}
+
+inline fn xor_16_16(dest, mask) {
+    lda dest + 0
+    eor mask + 0
+    sta dest + 0
+    lda dest + 1
+    eor mask + 1
+    sta dest + 1
+}
+
+inline fn xor_16_16_x(dest, mask) {
+    lda dest + 0
+    eor mask + 0
+    sta dest + 0, x
+    lda dest + 1
+    eor mask + 1
+    sta dest + 1, x
+}
+
+inline fn xor_16i(dest, mask) {
+    lda dest + 0
+    eor #lo!(mask)
+    sta dest + 0
+    lda dest + 1
+    eor #hi!(mask)
+    sta dest + 1
+}
+
+inline fn xor_16i_x(dest, mask) {
+    lda dest + 0, x
+    eor #lo!(mask)
+    sta dest + 0, x
+    lda dest + 1, x
+    eor #hi!(mask)
+    sta dest + 1, x
+}
+
+// --- Bitwise AND macros -----------------------------------------------------
+
+inline fn and_8(dest, mask) {
+    lda dest
+    and mask
+    sta dest
+}
+
+inline fn and_x(dest, mask) {
+    lda dest, x
+    and mask
+    sta dest, x
+}
+
+inline fn and_y(dest, mask) {
+    lda dest, y
+    and mask
+    sta dest, y
+}
+
+inline fn and_16_8(dest, mask) {
+    lda dest + 0
+    and mask
+    sta dest + 0
+}
+
+inline fn and_16_8_x(dest, mask) {
+    lda dest + 0, x
+    and mask
+    sta dest + 0, x
+}
+
+inline fn and_16_16(dest, mask) {
+    lda dest + 0
+    and mask + 0
+    sta dest + 0
+    lda dest + 1
+    and mask + 1
+    sta dest + 1
+}
+
+inline fn and_16_16_x(dest, mask) {
+    lda dest + 0
+    and mask + 0
+    sta dest + 0, x
+    lda dest + 1
+    and mask + 1
+    sta dest + 1, x
+}
+
+inline fn and_16i(dest, mask) {
+    lda dest + 0
+    and #lo!(mask)
+    sta dest + 0
+    lda dest + 1
+    and #hi!(mask)
+    sta dest + 1
+}
+
+inline fn and_16i_x(dest, mask) {
+    lda dest + 0, x
+    and #lo!(mask)
+    sta dest + 0, x
+    lda dest + 1, x
+    and #hi!(mask)
+    sta dest + 1, x
+}
+
+inline fn and_or(dest, and_mask, or_mask) {
+    lda dest
+    and and_mask
+    ora or_mask
+    sta dest
+}
+
+// --- Boolean compare macros -------------------------------------------------
+
+inline fn compare(src, value) {
+    lda src
+    cmp value
+}
+
+inline fn compare_x(src, value) {
+    lda src, x
+    cmp value
+}
+
+inline fn x_compare_x(src, value) {
+    lda src, x
+    cmp value, x
+}
+
+inline fn compare_16_16(src, value) {
+    lda src + 1
+    cmp value + 1
+    if (equal) {
+        lda src + 0
+        cmp value + 0
+    }
+}
+
+inline fn compare_16_16_x(src, value) {
+    lda src + 1
+    cmp value + 1, x
+    if (equal) {
+        lda src + 0
+        cmp value + 0, x
+    }
+}
+
+inline fn compare_16_x_16_x(src, value) {
+    lda src + 1, x
+    cmp value + 1, x
+    if (equal) {
+        lda src + 0, x
+        cmp value + 0, x
+    }
+}
+
+inline fn compare_16_y_16_x(src, value) {
+    lda src + 1, y
+    cmp value + 1, x
+    if (equal) {
+        lda src + 0, y
+        cmp value + 0, x
+    }
+}
+
+inline fn compare_8_y_8_x(src, value) {
+    lda src, y
+    cmp value, x
+}
+
+inline fn compare_16_x_16_y(src, value) {
+    lda src + 1, x
+    cmp value + 1, y
+    if (equal) {
+        lda src + 0, x
+        cmp value + 0, y
+    }
+}
+
+inline fn compare_8_x_8_y(src, value) {
+    lda src, x
+    cmp value, y
+}
+
+inline fn compare_8_x_8_x(src, value) {
+    lda src, x
+    cmp value, x
+}
+
+inline fn compare_8_x_8(src, value) {
+    lda src, x
+    cmp value
+}
+
+inline fn compare_8_y_8_y(src, value) {
+    lda src, y
+    cmp value, y
+}
+
+inline fn compare_16_16_y(src, value) {
+    lda src + 1
+    cmp value + 1, y
+    if (equal) {
+        lda src + 0
+        cmp value + 0, y
+    }
+}
+
+inline fn compare_16i(src, value) {
+    lda src + 1
+    cmp #hi!(value)
+    if (equal) {
+        lda src + 0
+        cmp #lo!(value)
+    }
+}
+
+// --- Math: addition macros --------------------------------------------------
+
+inline fn add(dest, value) {
+    clc
+    lda dest
+    adc value
+    sta dest
+}
+
+inline fn add_x(dest, value) {
+    clc
+    lda dest, x
+    adc value
+    sta dest, x
+}
+
+inline fn y_add(dest, value) {
+    clc
+    lda dest
+    adc value, y
+    sta dest
+}
+
+inline fn add_x_a(dest) {
+    clc
+    adc dest, x
+    sta dest, x
+}
+
+inline fn add_16_8_a(dest) {
+    clc
+    adc dest
+    sta dest
+    lda dest + 1
+    adc #0
+    sta dest + 1
+}
+
+inline fn add_16_8_a_x(dest) {
+    clc
+    adc dest, x
+    sta dest, x
+    lda dest + 1, x
+    adc #0
+    sta dest + 1, x
+}
+
+inline fn add_16_8(dest, value) {
+    lda value
+    add_16_8_a(dest)
+}
+
+inline fn add_16_8_to(src, value, dest) {
+    clc
+    lda src + 0
+    adc value
+    sta dest + 0
+    lda src + 1
+    adc #0
+    sta dest + 1
+}
+
+inline fn add_16_8_x(dest, value) {
+    lda value
+    add_16_8_a_x(dest)
+}
+
+inline fn add_16_16(dest, value) {
+    clc
+    lda dest
+    adc value
+    sta dest
+    lda dest + 1
+    adc value + 1
+    sta dest + 1
+}
+
+inline fn add_16_16_x(dest, value) {
+    clc
+    lda dest, x
+    adc value
+    sta dest, x
+    lda dest + 1, x
+    adc value + 1
+    sta dest + 1, x
+}
+
+inline fn add_16i(dest, value) {
+    clc
+    lda dest
+    adc #lo!(value)
+    sta dest
+    lda dest + 1
+    adc #hi!(value)
+    sta dest + 1
+}
+
+inline fn add_16i_x(dest, value) {
+    clc
+    lda dest, x
+    adc #lo!(value)
+    sta dest, x
+    lda dest + 1, x
+    adc #hi!(value)
+    sta dest + 1, x
+}
+
+// --- Math: subtraction macros ------------------------------------------------
+
+inline fn sub(dest, value) {
+    sec
+    lda dest
+    sbc value
+    sta dest
+}
+
+inline fn sub_x(dest, value) {
+    sec
+    lda dest, x
+    sbc value
+    sta dest, x
+}
+
+inline fn sub_16_8_a(dest) {
+    sec
+    sta _b_temp
+    lda dest + 0
+    sbc _b_temp
+    sta dest + 0
+    lda dest + 1
+    sbc #0
+    sta dest + 1
+}
+
+inline fn sub_16_8_a_to(value, dest) {
+    sec
+    sta _b_temp
+    lda value + 0
+    sbc _b_temp
+    sta dest + 0
+    lda value + 1
+    sbc #0
+    sta dest + 1
+}
+
+inline fn sub_16_8_a_x(dest) {
+    sec
+    sta _b_temp
+    lda dest + 0, x
+    sbc _b_temp
+    sta dest + 0, x
+    lda dest + 1, x
+    sbc #0
+    sta dest + 1, x
+}
+
+inline fn sub_16_8(dest, value) {
+    sec
+    lda dest + 0
+    sbc value
+    sta dest + 0
+    lda dest + 1
+    sbc #0
+    sta dest + 1
+}
+
+inline fn sub_16_8_to(src, value, dest) {
+    sec
+    lda src + 0
+    sbc value
+    sta dest + 0
+    lda src + 1
+    sbc #0
+    sta dest + 1
+}
+
+inline fn sub_16_8_x(dest, value) {
+    sec
+    lda dest + 0, x
+    sbc value
+    sta dest + 0, x
+    lda dest + 1, x
+    sbc #0
+    sta dest + 1, x
+}
+
+inline fn sub_16_16(dest, value) {
+    sec
+    lda dest + 0
+    sbc value + 0
+    sta dest + 0
+    lda dest + 1
+    sbc value + 1
+    sta dest + 1
+}
+
+inline fn sub_16_16_to(valuea, valueb, dest) {
+    sec
+    lda valuea + 0
+    sbc valueb + 0
+    sta dest + 0
+    lda valuea + 1
+    sbc valueb + 1
+    sta dest + 1
+}
+
+inline fn sub_16i(dest, value) {
+    sec
+    lda dest
+    sbc #lo!(value)
+    sta dest
+    lda dest + 1
+    sbc #hi!(value)
+    sta dest + 1
+}
+
+inline fn sub_16i_x(dest, value) {
+    sec
+    lda dest, x
+    sbc #lo!(value)
+    sta dest, x
+    lda dest + 1, x
+    sbc #hi!(value)
+    sta dest + 1, x
+}
+
+// --- Math: multiplication macros --------------------------------------------
+
+inline fn mul_a(dest, multiplier) {
+    clc
+    lda #0
+    ldx dest
+    while (nonzero) {
+        adc multiplier
+        dex
+    }
+}
+
+inline fn mul_x_a(dest, multiplier) {
+    clc
+    lda #0
+    ldy dest, x
+    while (nonzero) {
+        adc multiplier
+        dey
+    }
+}
+
+inline fn mul(dest, multiplier) {
+    mul_a(dest, multiplier)
+    sta dest
+}
+
+inline fn mul_x(dest, multiplier) {
+    mul_x_a(dest, multiplier)
+    sta dest, x
+}
+
+inline fn mul_16_8(dest, multiplier) {
+    zero_16(_w_temp)
+    ldx multiplier
+    while (nonzero) {
+        add_16_16(_w_temp, dest)
+        dex
+    }
+    assign_16_16(dest, _w_temp)
+}
+
+inline fn mul_16_8_x(dest, multiplier) {
+    zero_16(_w_temp)
+    ldx multiplier
+    while (nonzero) {
+        add_16_16_x(_w_temp, dest)
+        dex
+    }
+    assign_16_16_x(dest, _w_temp)
+}
+
+// --- Math: shift left macros ------------------------------------------------
+
+inline fn asl_16_1(dest) {
+    asl dest + 0
+    rol dest + 1
+}
+
+inline fn asl_16(dest, amount) {
+    ldx amount
+    while (not zero) {
+        asl dest + 0
+        rol dest + 1
+        dex
+    }
+}
+
+inline fn asl_16_to(dest, src, amount) {
+    assign_16_16(src, dest)
+    ldx amount
+    while (not zero) {
+        asl src + 0
+        rol dest + 1
+        dex
+    }
+}
+
+// --- Math: shift right macros -----------------------------------------------
+
+inline fn lsr_16(dest, amount) {
+    ldx amount
+    while (not zero) {
+        lsr dest + 1
+        ror dest + 0
+        dex
+    }
+}
+
+inline fn lsr_16_to(dest, src, amount) {
+    assign_16_16(src, dest)
+    ldx amount
+    while (not zero) {
+        lsr dest + 1
+        ror dest + 0
+        dex
+    }
+}
+
+// --- Math: division macros ---------------------------------------------------
+
+inline fn div(dest, amount) {
+    sec
+    ldx #0
+    lda amount
+    while (nonzero) {
+        bmi div_done_remainder
+        inx
+        sec
+        sbc dest
+    }
+    jmp div_done
+div_done_remainder:
+    dex
+div_done:
+    stx dest
+}
+
+inline fn div_with_rem(dest, amount) {
+    sec
+    ldx #0
+    lda dest
+    while (nonzero) {
+        bmi div_done_remainder
+        inx
+        sec
+        sbc amount
+    }
+    assign(_b_remainder, #0)
+    jmp div_done
+div_done_remainder:
+    clc
+    adc amount
+    sta _b_remainder
+    dex
+div_done:
+    stx dest
+}
+
+// --- Math: negativity macros ------------------------------------------------
+
+inline fn abs_a() {
+    if (is minus) {
+        eor #0xFF
+        clc
+        adc #1
+    }
+}
+
+inline fn abs(number) {
+    lda number
+    if (is minus) {
+        eor #0xFF
+        sta number
+        inc number
+    }
+}
+
+inline fn abs_16(number) {
+    lda number + 1
+    if (is minus) {
+        neg_16(number)
+    }
+}
+
+inline fn neg_a() {
+    eor #0xFF
+    clc
+    adc #1
+}
+
+inline fn neg(number) {
+    lda number
+    eor #0xFF
+    sta number
+    inc number
+}
+
+inline fn neg_16(number) {
+    sec
+    lda #0
+    sbc number + 0
+    sta number + 0
+    lda #0
+    sbc number + 1
+    sta number + 1
+}
+
+// --- Math: inc/dec macros ---------------------------------------------------
+
+inline fn inc_16(number) {
+    inc number + 0
+    if (zero)
+        inc number + 1
+}
+
+inline fn inc_16_x(number) {
+    inc number + 0, x
+    if (zero)
+        inc number + 1, x
+}
+
+inline fn dec_16(number) {
+    lda number + 0
+    if (zero)
+        dec number + 1
+        dec number + 0
+}
+
+inline fn dec_16_x(number) {
+    lda number + 0, x
+    if (zero)
+        dec number + 1, x
+        dec number + 0, x
+}
+
+inline fn clip_16(number) {
+    lda number + 1
+    if (negative) {
+        zero_16(number)
+    }
+}
+
+// --- Stack macros -----------------------------------------------------------
+
+inline fn pusha() {
+    pha
+}
+
+inline fn popa() {
+    pla
+}
+
+inline fn toss16() {
+    pla
+    pla
+}
+
+inline fn push(value) {
+    lda value
+    pusha()
+}
+
+inline fn push_x(src) {
+    lda src, x
+    pusha()
+}
+
+inline fn push_16(src) {
+    lda src + 0
+    pusha()
+    lda src + 1
+    pusha()
+}
+
+inline fn push_16_x(src) {
+    lda src + 0, x
+    pusha()
+    lda src + 1, x
+    pusha()
+}
+
+inline fn pop(dest) {
+    popa()
+    sta dest
+}
+
+inline fn pop_x(dest) {
+    popa()
+    sta dest, x
+}
+
+inline fn pop_16(dest) {
+    popa()
+    sta dest + 1
+    popa()
+    sta dest + 0
+}
+
+inline fn pop_16_x(dest) {
+    popa()
+    sta dest + 1, x
+    popa()
+    sta dest + 0, x
+}
+
+inline fn peek() {
+    popa()
+    pusha()
+}
+
+inline fn pushx() {
+    txa
+    pusha()
+}
+
+inline fn popx() {
+    popa()
+    tax
+}
+
+inline fn peekx() {
+    popa()
+    pusha()
+    tax
+}
+
+inline fn pushy() {
+    tya
+    pusha()
+}
+
+inline fn popy() {
+    popa()
+    tay
+}
+
+inline fn peeky() {
+    popa()
+    pusha()
+    tay
+}
+
+inline fn pushp() {
+    php
+}
+
+inline fn popp() {
+    plp
+}
+
+inline fn pushsp() {
+    tsx
+    pushx()
+}
+
+inline fn popsp() {
+    popx()
+    txs
+}
+
+inline fn push_all() {
+    pushp()
+    pusha()
+    pushx()
+    pushy()
+}
+
+inline fn pop_all() {
+    popy()
+    popx()
+    popa()
+    popp()
+}
+
+// --- Memory macros ----------------------------------------------------------
+
+inline fn memcpy_inline(dest, src, size) {
+    ldx #0
+    do {
+        lda src, x
+        sta dest, x
+        inx
+        cpx size
+    } while (nonzero)
+}
+
+inline fn memset_inline(memdest, value, memsize) {
+    lda value
+    ldx #0
+    do {
+        sta memdest, x
+        inx
+        cpx memsize
+    } while (nonzero)
+}
+
+// --- Jump macros ------------------------------------------------------------
+
+fn noreturn jsrind_f() {
+    jmp (_jsrind_temp)
+}
+
+inline fn jsrind(pproc) {
+    lda pproc + 0
+    ora pproc + 1
+    if (not zero) {
+        assign_16_16(_jsrind_temp, pproc)
+        jsrind_f()
+    }
+}
+
+inline fn jsrind_x(pproc) {
+    lda pproc + 0, x
+    ora pproc + 1, x
+    if (not zero) {
+        x_assign_16_16(_jsrind_temp, pproc)
+        jsrind_f()
+    }
+}
+
+inline fn jsrind_y(pproc) {
+    lda pproc + 0, y
+    ora pproc + 1, y
+    if (not zero) {
+        y_assign_16_16(_jsrind_temp, pproc)
+        jsrind_f()
+    }
+}
+
+inline fn jsrind_imd(pproc) {
+    lda #lo!(pproc)
+    ora #hi!(pproc)
+    if (not zero) {
+        assign_16i(_jsrind_temp, pproc)
+        jsrind_f()
+    }
+}
+
+inline fn jsr_table(ptable) {
+    asl a
+    tay
+    y_assign_16_16(_jsrind_temp, ptable)
+    jsrind_f()
+}
+
+inline fn jsr_table_xy(ptable) {
+    x_assign_16_16(_p_temp, ptable)
+    y_ind_assign_16_16(_jsrind_temp, _p_temp)
+    jsrind_f()
+}
+
+// --- Memory functions -------------------------------------------------------
+
+fn memcpy() {
+    do {
+        dey
+        lda (_mem_src), y
+        sta (_mem_dest), y
+        tya
+    } while (nonzero)
+}
+
+fn memset() {
+    do {
+        sta (_mem_dest), y
+        dey
+    } while (nonzero)
+}
+
+// --- Init function ----------------------------------------------------------
+
+fn clear_ram() {
+    lda #0
+    ldx #0
+    do {
+        sta 0x00, x
+        sta 0x200, x
+        sta 0x300, x
+        sta 0x400, x
+        sta 0x500, x
+        sta 0x600, x
+        sta 0x700, x
+        dex
+    } while (nonzero)
+}

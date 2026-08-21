@@ -5,6 +5,9 @@
 //! family. This includes the MOS 6502, the MOS 65SC02, the Ricoh 2A03,
 //! and the Ricoh 2A07.
 
+mod macros;
+mod ram;
+
 // --- Status flags ----------------------------------------------------------
 
 enum STATUS {
@@ -177,3 +180,5 @@ pub use COND::*;
 pub use OPCODE::*;
 pub use ADDR_MODE::*;
 pub use INTERRUPT::*;
+pub use macros::*;
+pub use ram::*;

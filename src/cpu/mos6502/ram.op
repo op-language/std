@@ -1,0 +1,22 @@
+//! mos6502 Temp and Shadow RAM Variables
+//!
+//! Temp variables used by the 6502 math, memory, and jump macros.
+//! The macros reference these variables by name.
+
+// --- standard temp variables ------------------------------------------------
+
+byte _b_temp;
+word _w_temp;
+pointer _p_temp;
+pointer _jsrind_temp;
+
+// --- math temp variables ----------------------------------------------------
+
+byte _b_remainder;
+byte _random_value;
+byte _random_ticks;
+
+// --- memory temp variables --------------------------------------------------
+
+pointer _mem_src;
+pointer _mem_dest;

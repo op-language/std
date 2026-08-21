@@ -186,3 +186,5 @@ pub use COND::*;
 pub use OPCODE::*;
 pub use ADDR_MODE::*;
 pub use INTERRUPT::*;
+use std::cpu::mos6502::macros::*;
+use std::cpu::mos6502::ram::*;
