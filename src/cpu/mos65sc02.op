@@ -1,7 +1,159 @@
 //! MOS 65SC02 CPU
 //!
-//! The MOS 65SC02 extends the 6502 with additional opcodes and addressing
-//! modes. The 65SC02 removes the undocumented opcodes.
+//! Registers, condition keywords, opcode mnemonics, addressing modes,
+//! and interrupt names for the MOS 65SC02 CPU. The 65SC02 extends the
+//! 6502 with additional opcodes and addressing modes. The 65SC02
+//! removes the undocumented opcodes.
 
-// TODO: populate with 65SC02 additional opcodes (BRA, PHX, PHY, PLX, PLY,
-// STZ, TSB, TRB, INA, DEA) and zero-page-indirect addressing mode.
+// --- Status flags ----------------------------------------------------------
+
+enum STATUS {
+    N = 0x80,
+    V = 0x40,
+    B = 0x10,
+    D = 0x08,
+    I = 0x04,
+    Z = 0x02,
+    C = 0x01,
+}
+
+// --- Registers -------------------------------------------------------------
+//
+// The lib defines cpu::a, cpu::x, and cpu::y as register references.
+
+enum CPU_REG {
+    a = 0,
+    x = 1,
+    y = 2,
+}
+
+// --- Condition keywords ----------------------------------------------------
+//
+// The lib defines the condition keywords for if, while, and do-while
+// tests. The modifier keywords is, has, no, and not may prefix a
+// condition.
+
+enum COND {
+    plus       = 0,
+    positive   = 0,
+    minus      = 1,
+    negative   = 1,
+    greater    = 0,
+    less       = 1,
+    overflow   = 2,
+    carry      = 3,
+    nonzero    = 4,
+    set        = 4,
+    true       = 4,
+    zero       = 5,
+    unset      = 5,
+    false      = 5,
+    clear      = 5,
+    equal      = 5,
+}
+
+// --- Opcode mnemonics ------------------------------------------------------
+//
+// The 65SC02 opcode table includes the 6502 base mnemonics plus the
+// 65SC02 additional mnemonics. The 65SC02 removes the undocumented
+// opcodes.
+
+enum OPCODE {
+    ADC,
+    AND,
+    ASL,
+    BCC,
+    BCS,
+    BEQ,
+    BIT,
+    BMI,
+    BNE,
+    BPL,
+    BRA,
+    BRK,
+    BVC,
+    BVS,
+    CLC,
+    CLD,
+    CLI,
+    CLV,
+    CMP,
+    CPX,
+    CPY,
+    DEC,
+    DEA,
+    DEX,
+    DEY,
+    EOR,
+    INC,
+    INA,
+    INX,
+    INY,
+    JMP,
+    JSR,
+    LDA,
+    LDX,
+    LDY,
+    LSR,
+    NOP,
+    ORA,
+    PHA,
+    PHP,
+    PHX,
+    PHY,
+    PLA,
+    PLP,
+    PLX,
+    PLY,
+    ROL,
+    ROR,
+    RTI,
+    RTS,
+    SBC,
+    SEC,
+    SED,
+    SEI,
+    STA,
+    STX,
+    STY,
+    STZ,
+    TAX,
+    TAY,
+    TRB,
+    TSB,
+    TSX,
+    TXA,
+    TXS,
+    TYA,
+}
+
+// --- Addressing modes ------------------------------------------------------
+//
+// The lib defines the 6502 addressing modes plus the zero-page-indirect
+// addressing mode.
+
+enum ADDR_MODE {
+    zp,
+    abs,
+    rel,
+    ind,
+    idx,
+    ind_idx,
+}
+
+// --- Interrupt vectors -----------------------------------------------------
+//
+// The 65SC02 supports three interrupt vectors.
+
+enum INTERRUPT {
+    reset,
+    nmi,
+    irq,
+}
+
+// Re-export the enum variants.
+pub use CPU_REG::*;
+pub use COND::*;
+pub use OPCODE::*;
+pub use ADDR_MODE::*;
+pub use INTERRUPT::*;
