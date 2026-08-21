@@ -5,6 +5,44 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0]
+
+### Added
+- `src/machine/gameboy/ram.op` with the `_joypad_raw` shadow variable
+  used by the `read_joypad` macro.
+- VRAM and memory constants in `src/machine/gameboy/constants.op`:
+  `TILE_MAP_0_ADDRESS`, `TILE_MAP_1_ADDRESS`, `TILE_PATTERN_0_ADDRESS`,
+  `TILE_PATTERN_1_ADDRESS`, `OAM_ADDRESS`, `SCREEN_WIDTH`,
+  `SCREEN_HEIGHT`, `TILE_MAP_WIDTH`, `TILE_MAP_HEIGHT`.
+- LCD control bitmasks in `src/machine/gameboy/constants.op`:
+  `LCD_DISPLAY_ENABLE`, `LCD_WINDOW_MAP_9C00`, `LCD_WINDOW_ENABLE`,
+  `LCD_TILE_DATA_8800`, `LCD_BG_MAP_9C00`, `LCD_SPRITE_8x16`,
+  `LCD_SPRITE_ENABLE`, `LCD_BG_ENABLE`.
+- CGB palette registers in `src/machine/gameboy/constants.op` gated on
+  `#[cfg(variant = "color")]`: `BCPS` (0xFF68), `BCPD` (0xFF69),
+  `OCPS` (0xFF6A), `OCPD` (0xFF6B).
+- `DMG_SHADE` enum in `src/machine/gameboy/types.op` with the four
+  monochrome shades: `WHITE`, `LIGHT_GRAY`, `DARK_GRAY`, `BLACK`.
+- VRAM and system macros in `src/machine/gameboy/macros.op`:
+  `system_initialize`, `turn_video_on`, `turn_video_off`,
+  `vram_set_address_hl`, `vram_write_a`, `vram_write`,
+  `vram_clear_address`, `assign`, `assign_16i`.
+- CGB palette macros in `src/machine/gameboy/macros.op` gated on
+  `#[cfg(variant = "color")]`: `cgb_set_bg_palette`,
+  `cgb_set_sprite_palette`.
+
+### Changed
+- Rewrote `src/machine/gameboy/macros.op` to use SM83 mnemonics. The
+  `read_joypad`, `vblank_wait`, and `dma_copy` macros now use `ld`,
+  `ldh`, `and` instead of the 6502 `lda`, `sta`, `and`.
+- Fixed `LCD_STATUS` enum in `src/machine/gameboy/types.op`. Set
+  `HBLANK` to 0 and `VBLANK` to 1. The old values had both set to 0.
+- The `vblank_wait` macro now waits for STAT mode 1 (vblank) by
+  polling `LCD::STATUS` and testing `and #3` for zero (mode 0 is
+  hblank, not vblank).
+
+### Changed
+
 ## [0.4.0]
 
 ### Added

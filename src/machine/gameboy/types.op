@@ -19,10 +19,24 @@ enum JOYPAD_BUTTON {
 // --- LCD status modes ------------------------------------------------------
 
 enum LCD_STATUS {
-    VBLANK   = 0,
     HBLANK   = 0,
+    VBLANK   = 1,
     OAM      = 2,
     TRANSFER = 3,
+}
+
+// --- DMG monochrome shades --------------------------------------------------
+//
+// The DMG background palette register (0xFF47) holds four 2-bit shade
+// values packed into one byte. Each shade selects one of four gray
+// levels. Bits 0-1 set the shade for color 0, bits 2-3 for color 1,
+// bits 4-5 for color 2, and bits 6-7 for color 3.
+
+enum DMG_SHADE {
+    WHITE      = 0x00,
+    LIGHT_GRAY = 0x01,
+    DARK_GRAY  = 0x02,
+    BLACK      = 0x03,
 }
 
 // --- interrupt flags -------------------------------------------------------

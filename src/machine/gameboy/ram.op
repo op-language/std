@@ -1,0 +1,7 @@
+//! Game Boy Shadow RAM Variables
+//!
+//! Shadow variables used by the Game Boy video, IO, and palette macros.
+
+// --- IO shadow variables ----------------------------------------------------
+
+_joypad_raw: [u8; 2];

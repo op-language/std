@@ -8,7 +8,9 @@
 mod constants;
 mod types;
 mod macros;
+mod ram;
 
 pub use constants::*;
 pub use types::*;
 pub use macros::*;
+pub use ram::*;

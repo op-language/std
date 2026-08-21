@@ -1,6 +1,8 @@
 //! Game Boy Macros
 //!
 //! System inline macros for the Nintendo Game Boy and Game Boy Color.
+//! All macros use SM83 mnemonics. Game Boy Color macros are gated on
+//! `#[cfg(variant = "color")]`.
 
 use super::constants::*;
 use super::types::*;
@@ -18,30 +20,122 @@ inline fn disable_interrupts() {
 // --- joypad ----------------------------------------------------------------
 
 inline fn read_joypad() {
-    lda #0x20
-    sta JOYPAD
-    lda JOYPAD
+    ld a, #0x20
+    ldh (JOYPAD), a
+    ldh a, (JOYPAD)
     and #0x0F
-    sta _joypad_raw
-    lda #0x10
-    sta JOYPAD
-    lda JOYPAD
+    ld (_joypad_raw), a
+    ld a, #0x10
+    ldh (JOYPAD), a
+    ldh a, (JOYPAD)
     and #0x0F
-    sta _joypad_raw + 1
+    ld (_joypad_raw + 1), a
 }
 
 // --- vblank wait ------------------------------------------------------------
 
 inline fn vblank_wait() {
     do {
-        lda LCD::STATUS
+        ldh a, (LCD::STATUS)
         and #3
-    } while (not zero)
+    } while (zero)
 }
 
 // --- DMA copy ---------------------------------------------------------------
 
 inline fn dma_copy(src) {
-    lda #hi!(src)
-    sta LCD::DMA
+    ld a, #hi!(src)
+    ldh (LCD::DMA), a
+}
+
+// --- system initialization -------------------------------------------------
+
+inline fn system_initialize() {
+    disable_interrupts()
+    ld a, #0
+    ldh (LCD::CONTROL), a
+    ldh (LCD::SCROLL_Y), a
+    ldh (LCD::SCROLL_X), a
+    ldh (LCD::BG_PALETTE), a
+}
+
+// --- video control ---------------------------------------------------------
+
+inline fn turn_video_on() {
+    ld a, #LCD_BG_ENABLE
+    ldh (LCD::CONTROL), a
+}
+
+inline fn turn_video_off() {
+    ld a, #0
+    ldh (LCD::CONTROL), a
+}
+
+// --- VRAM addressing -------------------------------------------------------
+//
+// The Game Boy VRAM is directly addressable at 0x8000-0x9FFF. Set HL
+// to the target address, then use ld (hl), a to write and inc hl to
+// advance.
+
+inline fn vram_set_address_hl(addr) {
+    ld h, #hi!(addr)
+    ld l, #lo!(addr)
+}
+
+// --- VRAM data -------------------------------------------------------------
+
+inline fn vram_write_a() {
+    ld (hl), a
+    inc hl
+}
+
+inline fn vram_write(value) {
+    ld a, #value
+    ld (hl), a
+    inc hl
+}
+
+inline fn vram_clear_address() {
+    // No address latch on the Game Boy. This is a no-op for NES
+    // compatibility.
+    nop
+}
+
+// --- assignment helpers ----------------------------------------------------
+
+inline fn assign(dest, value) {
+    ld a, #value
+    ld (dest), a
+}
+
+inline fn assign_16i(dest, value) {
+    ld a, #lo!(value)
+    ld (dest + 0), a
+    ld a, #hi!(value)
+    ld (dest + 1), a
+}
+
+// --- Game Boy Color palette macros -----------------------------------------
+//
+// These macros write to the CGB palette registers. They are gated on
+// `#[cfg(variant = "color")]`.
+
+#[cfg(variant = "color")]
+inline fn cgb_set_bg_palette(index, color) {
+    ld a, #index
+    ldh (BCPS), a
+    ld a, #lo!(color)
+    ldh (BCPD), a
+    ld a, #hi!(color)
+    ldh (BCPD), a
+}
+
+#[cfg(variant = "color")]
+inline fn cgb_set_sprite_palette(index, color) {
+    ld a, #index
+    ldh (OCPS), a
+    ld a, #lo!(color)
+    ldh (OCPD), a
+    ld a, #hi!(color)
+    ldh (OCPD), a
 }
