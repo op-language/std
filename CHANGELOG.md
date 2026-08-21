@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0]
+
+### Added
+- `src/cpu/rp2A03.op` and `src/cpu/rp2A07.op` CPU family modules for the
+  Ricoh RP2A03 and RP2A07. These are MOS 6502 cores without decimal mode.
+  The `CLD` and `SED` opcodes and the `D` status flag are removed.
+- `CLOCK_HZ` constant in the rp2A03 and rp2A07 modules. The value is
+  1789773 for `ntsc` and 1662607 for `pal`.
+- `#[cfg(cpu = "rp2A03")]` and `#[cfg(cpu = "rp2A07")]` arms in `cpu.op`.
+- New tests `tests/rp2A03-nintendo-nes-ntsc.op`,
+  `tests/rp2A07-nintendo-nes-pal.op`, and `tests/rp2A03-cpu-alias.op`.
+
+### Changed
+- The supported-targets table in `README.md` lists
+  `rp2A03-nintendo-nes-ntsc` and `rp2A07-nintendo-nes-pal` for the NES.
+  The `mos6502` CPU stays valid for the other 6502 targets.
+
 ## [0.2.0]
 
 ### Added

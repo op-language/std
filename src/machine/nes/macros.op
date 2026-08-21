@@ -28,7 +28,7 @@ inline fn reset_stack() {
 inline fn system_initialize() {
     disable_interrupts()
     reset_stack()
-    lda 0
+    lda #0
     sta PPU::CNT0
     sta PPU::CNT1
     sta PPU::BG_SCROLL
@@ -66,7 +66,7 @@ inline fn vram_set_address_i(addr) {
 }
 
 inline fn vram_clear_address() {
-    lda 0
+    lda #0
     sta PPU::ADDRESS
     sta PPU::ADDRESS
 }
@@ -74,7 +74,7 @@ inline fn vram_clear_address() {
 // --- VRAM data -------------------------------------------------------------
 
 inline fn vram_write(value) {
-    lda value
+    lda #value
     sta PPU::IO
 }
 
@@ -95,7 +95,7 @@ inline fn turn_video_off() {
 // --- assignment helpers ----------------------------------------------------
 
 inline fn assign(dest, value) {
-    lda value
+    lda #value
     sta dest
 }
 

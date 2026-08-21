@@ -1,0 +1,188 @@
+//! Ricoh RP2A07 CPU Family (NES PAL)
+//!
+//! Status flags, registers, condition keywords, opcode mnemonics,
+//! addressing modes, and interrupt vector names for the Ricoh RP2A07 CPU.
+//! This is a MOS 6502 core without binary-coded decimal mode. The CLD and
+//! SED opcodes and the D status flag are removed because the chip lacks
+//! decimal-mode circuitry.
+
+// --- Clock frequency --------------------------------------------------------
+//
+// The RP2A07 runs at 1789773 Hz for the NTSC variant and 1662607 Hz for
+// the PAL variant. The value is selected by the variant cfg key.
+
+#[cfg(variant = "ntsc")]
+const CLOCK_HZ: u32 = 1789773;
+
+#[cfg(variant = "pal")]
+const CLOCK_HZ: u32 = 1662607;
+
+// --- Status flags ----------------------------------------------------------
+
+enum STATUS {
+    N = 0x80,
+    V = 0x40,
+    B = 0x10,
+    I = 0x04,
+    Z = 0x02,
+    C = 0x01,
+}
+
+// --- Registers -------------------------------------------------------------
+//
+// The lib defines cpu::a, cpu::x, and cpu::y as register references for
+// use in switch statements and operand expressions.
+
+enum CPU_REG {
+    a = 0,
+    x = 1,
+    y = 2,
+}
+
+// --- Condition keywords ----------------------------------------------------
+//
+// The lib defines the following condition keywords for if, while, and
+// do-while tests. The modifier keywords is, has, no, and not may prefix a
+// condition. The compiler treats them as no-ops.
+
+enum COND {
+    plus       = 0,
+    positive   = 0,
+    minus      = 1,
+    negative   = 1,
+    greater    = 0,
+    less       = 1,
+    overflow   = 2,
+    carry      = 3,
+    nonzero    = 4,
+    set        = 4,
+    true       = 4,
+    zero       = 5,
+    unset      = 5,
+    false      = 5,
+    clear      = 5,
+    equal      = 5,
+}
+
+// --- Opcode mnemonics ------------------------------------------------------
+//
+// The RP2A07 opcode table lists each mnemonic and the legal addressing modes.
+// The CLD and SED opcodes are removed because the chip lacks decimal mode.
+
+enum OPCODE {
+    ADC,
+    AND,
+    ASL,
+    BCC,
+    BCS,
+    BEQ,
+    BIT,
+    BMI,
+    BNE,
+    BPL,
+    BRK,
+    BVC,
+    BVS,
+    CLC,
+    CLI,
+    CLV,
+    CMP,
+    CPX,
+    CPY,
+    DEC,
+    DEX,
+    DEY,
+    EOR,
+    INC,
+    INX,
+    INY,
+    JMP,
+    JSR,
+    LDA,
+    LDX,
+    LDY,
+    LSR,
+    NOP,
+    ORA,
+    PHA,
+    PHP,
+    PLA,
+    PLP,
+    ROL,
+    ROR,
+    RTI,
+    RTS,
+    SBC,
+    SEC,
+    SEI,
+    STA,
+    STX,
+    STY,
+    TAX,
+    TAY,
+    TSX,
+    TXA,
+    TXS,
+    TYA,
+}
+
+// --- Undocumented opcodes --------------------------------------------------
+//
+// The 6502 has undocumented opcodes that real hardware executes. The lib
+// defines them as legal mnemonics. A program may use them with
+// #[cfg(feature = "undocumented")].
+
+#[cfg(feature = "undocumented")]
+enum UNDOC_OPCODE {
+    ALR,
+    ANC,
+    ANE,
+    ARR,
+    DCP,
+    ISC,
+    LAS,
+    LAX,
+    LXA,
+    RLA,
+    RRA,
+    SAX,
+    SHA,
+    SHX,
+    SHY,
+    SLO,
+    SRE,
+    TAS,
+    USBC,
+}
+
+// --- Addressing modes ------------------------------------------------------
+//
+// The lib defines the addressing mode prefix names.
+
+enum ADDR_MODE {
+    zp,
+    abs,
+    rel,
+    ind,
+    idx,
+    ind_idx,
+}
+
+// --- Interrupt vectors -----------------------------------------------------
+//
+// The RP2A07 supports three interrupt vectors. The lib defines the names
+// reset, nmi, and irq for #[interrupt(...)].
+
+enum INTERRUPT {
+    reset,
+    nmi,
+    irq,
+}
+
+// Re-export the register enum variants so `cpu::a`, `cpu::x`, `cpu::y`
+// work after `use std::*;` or `use std::cpu::*;`.
+pub use CPU_REG::*;
+pub use COND::*;
+pub use OPCODE::*;
+pub use ADDR_MODE::*;
+pub use INTERRUPT::*;

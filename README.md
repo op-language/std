@@ -79,8 +79,8 @@ when a ROM project includes it and builds with a target flag.
 | `mos65sc02-atari-lynx` | MOS 65SC02 | Atari Lynx |
 | `mos6502-commodore-64` | MOS 6502 | Commodore 64 |
 | `mos6502-nec-pcengine` | MOS 6502 | NEC PC Engine |
-| `mos6502-nintendo-nes-ntsc` | Ricoh 2A03 | NES NTSC |
-| `mos6502-nintendo-nes-pal` | Ricoh 2A07 | NES PAL |
+| `rp2A03-nintendo-nes-ntsc` | Ricoh RP2A03 | NES NTSC |
+| `rp2A07-nintendo-nes-pal` | Ricoh RP2A07 | NES PAL |
 | `m68000-neogeo-aes` | Motorola 68000 | Neo Geo AES |
 | `m68000-sega-genesis` | Motorola 68000 | Sega Genesis |
 | `wdc65c816-apple-iigs` | WDC 65C816 | Apple IIgs |

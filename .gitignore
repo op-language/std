@@ -1,3 +1,5 @@
 /target
 **/*.rs.bk
 *.pdb
+plan.md
+session.json
