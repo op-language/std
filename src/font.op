@@ -8,17 +8,19 @@
 
 mod types;
 mod ram;
+mod api;
 
 #[cfg(machine = "nes")]
 mod nes;
 
-#[cfg(all(machine = "gameboy", any(variant = "gameboy", variant = "color")))]
+#[cfg(machine = "gameboy")]
 mod gameboy;
 
 #[cfg(machine = "nes")]
 pub use nes::*;
 
-#[cfg(all(machine = "gameboy", any(variant = "gameboy", variant = "color")))]
+#[cfg(machine = "gameboy")]
 pub use gameboy::*;
 
+pub use api::*;
 pub use types::*;

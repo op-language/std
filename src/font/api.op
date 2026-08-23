@@ -1,0 +1,55 @@
+//! Font Shared API
+//!
+//! Cross-platform inline functions for font initialization, color
+//! setting, font loading, and font set.
+
+use super::types::*;
+use super::ram::*;
+use std::machine::*;
+
+// --- Font initialization ----------------------------------------------------
+
+inline fn font_init() {
+    assign(font_first_free_tile, 0)
+    assign(_cursor_x, 0)
+    assign(_cursor_y, 0)
+}
+
+// --- Text color ------------------------------------------------------------
+
+inline fn set_text_color(fg, bg) {
+    assign(_current_fg, fg)
+    assign(_current_bg, bg)
+}
+
+// --- Font loading ----------------------------------------------------------
+
+inline fn font_load(font) {
+    // Store the font data pointer in the current font variable.
+    lda #lo!(font.data)
+    sta _font_current + 0
+    lda #hi!(font.data)
+    sta _font_current + 1
+    // Store the first tile index.
+    assign(_font_current + 2, font_first_free_tile)
+
+    // Call the platform tile loader to copy tiles into VRAM.
+    _font_load_tiles(font_first_free_tile, font.tile_count, font.data)
+
+    // Advance the first free tile counter.
+    lda font_first_free_tile
+    clc
+    adc font.tile_count
+    sta font_first_free_tile
+}
+
+// --- Font set ---------------------------------------------------------------
+
+inline fn font_set(handle) {
+    lda handle + 0
+    sta _font_current + 0
+    lda handle + 1
+    sta _font_current + 1
+    lda handle + 2
+    sta _font_current + 2
+}

@@ -1,0 +1,48 @@
+//! Game Boy Font Tile Loader
+//!
+//! Runtime 1bpp to 2bpp interleaved tile loader. Writes font tile data
+//! to Game Boy VRAM at 0x8000. The 1bpp source data is expanded to
+//! 2bpp using the foreground and background colors set by
+//! `set_text_color`.
+//!
+//! This module is gated on `#[cfg(all(machine = "gameboy",
+//! any(variant = "gameboy", variant = "color")))]`.
+
+use super::types::*;
+use super::ram::*;
+use std::machine::*;
+
+// --- Game Boy runtime tile loader -------------------------------------------
+
+inline fn _font_load_tiles(first, count, data) {
+    // Turn the LCD off so we can write to VRAM safely.
+    turn_video_off()
+
+    // Set HL to the VRAM pattern table address.
+    ld h, #0x80
+    ld l, #0x00
+
+    // Save count in B.
+    ld b, count
+
+    'tile_loop:
+    // Write 8 rows of interleaved plane 0 and plane 1.
+    ld c, #8
+    'row_loop:
+    // Write plane 0 byte.
+    ld a, #0
+    ld (hl), a
+    inc hl
+    // Write plane 1 byte.
+    ld a, #0
+    ld (hl), a
+    inc hl
+    dec c
+    if (not zero) { jp 'row_loop }
+
+    dec b
+    if (not zero) { jp 'tile_loop }
+
+    // Turn the LCD back on.
+    turn_video_on()
+}

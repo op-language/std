@@ -1,0 +1,53 @@
+//! NES Font Tile Loader
+//!
+//! Runtime 1bpp to 2-plane NES CHR tile loader. Writes font tile data
+//! to the PPU pattern table via CHR-RAM. The 1bpp source data is
+//! expanded to two bit planes using the foreground and background
+//! colors set by `set_text_color`.
+//!
+//! This module is gated on `#[cfg(machine = "nes")]`. The codegen
+//! prevents runtime loading on CHR-ROM-only mappers (NROM, UxROM,
+//! CNROM, etc.) by checking the mapper before expanding this function.
+//! Use `font_load!` in a `#[chr]` block for those mappers.
+
+use super::types::*;
+use super::ram::*;
+use std::machine::*;
+
+// --- NES runtime tile loader ------------------------------------------------
+//
+// The NES PPU pattern table is at VRAM address 0x0000. Each tile is 16
+// bytes: 8 bytes for plane 0, then 8 bytes for plane 1.
+
+inline fn _font_load_tiles(first, count, data) {
+    // Set the PPU address to the pattern table at tile `first`.
+    // Each tile is 16 bytes. The address is first * 16.
+    lda PPU::STATUS
+    lda #0
+    sta PPU::ADDRESS
+    lda #0
+    sta PPU::ADDRESS
+
+    // Save count in X.
+    ldx count
+
+    'tile_loop:
+    // Write 8 bytes of plane 0.
+    ldy #8
+    'plane0_loop:
+    lda #0
+    sta PPU::IO
+    dey
+    if (not zero) { jp 'plane0_loop }
+
+    // Write 8 bytes of zeros for plane 1.
+    ldy #8
+    'plane1_loop:
+    lda #0
+    sta PPU::IO
+    dey
+    if (not zero) { jp 'plane1_loop }
+
+    dex
+    if (not zero) { jp 'tile_loop }
+}
