@@ -29,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `vram_clear_address`, `assign`, `assign_16i`.
 - CGB palette macros in `src/machine/gameboy/macros.op` gated on
   `#[cfg(variant = "color")]`: `cgb_set_bg_palette`,
-  `cgb_set_sprite_palette`.
+  `cgb_set_sprite_palette`. Updated to use `CGB_PALETTE::BCPS`,
+  `CGB_PALETTE::BCPD`, `CGB_PALETTE::OCPS`, `CGB_PALETTE::OCPD`.
 
 ### Changed
 - Rewrote `src/machine/gameboy/macros.op` to use SM83 mnemonics. The
@@ -40,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `vblank_wait` macro now waits for STAT mode 1 (vblank) by
   polling `LCD::STATUS` and testing `and #3` for zero (mode 0 is
   hblank, not vblank).
+- Changed CGB palette registers from `#[addr(...)]` variables to
+  `enum CGB_PALETTE` constants in `src/machine/gameboy/constants.op`.
+  The `#[addr]` variables were unresolved symbols at link time because
+  they occupy hardware register space (0xFF68-0xFF6B), not RAM. As
+  enum constants, they resolve to their address values like `LCD::CONTROL`.
 
 ### Changed
 

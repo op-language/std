@@ -163,20 +163,12 @@ RAM_BANK: u8;
 // sets the palette entry and has an auto-increment bit.
 
 #[cfg(variant = "color")]
-#[addr(0xFF68)]
-BCPS: u8;
-
-#[cfg(variant = "color")]
-#[addr(0xFF69)]
-BCPD: u8;
-
-#[cfg(variant = "color")]
-#[addr(0xFF6A)]
-OCPS: u8;
-
-#[cfg(variant = "color")]
-#[addr(0xFF6B)]
-OCPD: u8;
+enum CGB_PALETTE {
+    BCPS = 0xFF68,
+    BCPD = 0xFF69,
+    OCPS = 0xFF6A,
+    OCPD = 0xFF6B,
+}
 
 // --- button masks -----------------------------------------------------------
 

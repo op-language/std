@@ -123,19 +123,19 @@ inline fn assign_16i(dest, value) {
 #[cfg(variant = "color")]
 inline fn cgb_set_bg_palette(index, color) {
     ld a, #index
-    ldh (BCPS), a
+    ldh (CGB_PALETTE::BCPS), a
     ld a, #lo!(color)
-    ldh (BCPD), a
+    ldh (CGB_PALETTE::BCPD), a
     ld a, #hi!(color)
-    ldh (BCPD), a
+    ldh (CGB_PALETTE::BCPD), a
 }
 
 #[cfg(variant = "color")]
 inline fn cgb_set_sprite_palette(index, color) {
     ld a, #index
-    ldh (OCPS), a
+    ldh (CGB_PALETTE::OCPS), a
     ld a, #lo!(color)
-    ldh (OCPD), a
+    ldh (CGB_PALETTE::OCPD), a
     ld a, #hi!(color)
-    ldh (OCPD), a
+    ldh (CGB_PALETTE::OCPD), a
 }
