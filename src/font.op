@@ -1,0 +1,24 @@
+//! Font Module
+//!
+//! Cross-platform font loading and text display for the NES, the DMG, and
+//! the GBC. The `pub use font::*` re-export flattens the selected platform
+//! module so `font_load` and `draw_text` work directly.
+//!
+//! See `docs/FONT_REFERENCE.md` for the binary font format specification.
+
+mod types;
+mod ram;
+
+#[cfg(machine = "nes")]
+mod nes;
+
+#[cfg(all(machine = "gameboy", any(variant = "gameboy", variant = "color")))]
+mod gameboy;
+
+#[cfg(machine = "nes")]
+pub use nes::*;
+
+#[cfg(all(machine = "gameboy", any(variant = "gameboy", variant = "color")))]
+pub use gameboy::*;
+
+pub use types::*;

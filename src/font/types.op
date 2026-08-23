@@ -1,0 +1,103 @@
+//! Font Types
+//!
+//! Enums and struct definitions for the font system.
+//!
+//! ## Flat Byte Format
+//!
+//! A font data blob is a flat byte array with this structure:
+//!
+//! 1.  Byte 0: Flags byte. The lower 2 bits set the encoding mode.
+//!     Bit 2 (value 4) sets the compressed flag.
+//!
+//! 2.  Byte 1: Tile count. The number of 8x8 tiles in the font.
+//!
+//! 3.  Encoding table: 256, 128, or 0 bytes depending on the encoding
+//!     mode. Each byte maps a character code to a tile index.
+//!
+//! 4.  Tile data: tile_count * tile_h bytes. Each tile is 8 bytes
+//!     (one byte per row). The most significant bit is the leftmost
+//!     pixel. A set bit is the foreground color. A clear bit is the
+//!     background color.
+//!
+//! ## Naming Convention
+//!
+//! The data array name is `<FONT>_<SIZE>_<STYLE>_<TARGET>`. For example,
+//! `IBM_SMALL_NORMAL_NES` is the IBM font data for the NES target.
+//!
+//! The font_t constant name is `FONT_<FONT>_<SIZE>_<STYLE>`. For example,
+//! `FONT_IBM_SMALL_NORMAL` is the font_t struct constant. It is gated
+//! by `#[cfg]` to point to the correct target data array.
+
+// --- Encoding modes --------------------------------------------------------
+
+/// Font encoding mode. The lower 2 bits of the flags byte.
+enum FONT_ENCODING {
+    /// 256-byte encoding table. Maps char codes 0x00 through 0xFF.
+    ENCODE_256 = 0,
+    /// 128-byte encoding table. Maps char codes 0x00 through 0x7F.
+    ENCODE_128 = 1,
+    /// No encoding table. The char code is the tile index.
+    ENCODE_NONE = 2,
+}
+
+// --- Font variants ----------------------------------------------------------
+
+/// Font size variant.
+enum FONT_SIZE {
+    TINY = 0,
+    SMALL = 1,
+    LARGE = 2,
+    EXTRA_LARGE = 3,
+}
+
+/// Font style variant.
+enum FONT_STYLE {
+    NORMAL = 0,
+    BOLD = 1,
+    ITALIC = 2,
+    BOLD_ITALIC = 3,
+}
+
+/// Font spacing variant.
+enum FONT_SPACING {
+    MONOSPACE = 0,
+    PROPORTIONAL = 1,
+}
+
+// --- Font handle ------------------------------------------------------------
+
+/// A handle to a loaded font. Returned by `font_load`.
+struct font_handle_t {
+    /// The first VRAM tile index used by this font.
+    first_tile: u8,
+    /// Pointer to the font data blob in ROM.
+    font: pointer,
+}
+
+// --- Font metadata struct ---------------------------------------------------
+
+/// Font metadata and data pointer. Each font lib exports one of these
+/// as a const per variant. The `data` field points to the flat byte
+/// blob in ROM.
+struct font_t {
+    /// Pointer to a string with the font name.
+    name: pointer,
+    /// Tile width in pixels (always 8 for the current targets).
+    tile_w: u8,
+    /// Tile height in pixels (8 for SMALL, 16 for EXTRA_LARGE).
+    tile_h: u8,
+    /// The FONT_ENCODING value.
+    encoding: u8,
+    /// The number of tiles in the data blob.
+    tile_count: u8,
+    /// The flags byte from the font header.
+    flags: u8,
+    /// The FONT_SIZE value.
+    size: u8,
+    /// The FONT_STYLE value.
+    style: u8,
+    /// The FONT_SPACING value.
+    spacing: u8,
+    /// Pointer to the flat byte blob in ROM (header + enc table + 1bpp tiles).
+    data: pointer,
+}
