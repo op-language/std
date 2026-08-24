@@ -1,0 +1,21 @@
+//! Bundled Font Data
+//!
+//! This module declares the bundled font data files. Each font data
+//! file is in the `data/` subdirectory and contains `const [u8; N]`
+//! array literals and `font_t` struct constants, gated by `#[cfg]`.
+
+mod ibm;
+mod ibm_fixed;
+mod italic;
+mod min;
+mod spect;
+mod nes;
+
+pub use ibm::*;
+pub use ibm_fixed::*;
+pub use italic::*;
+pub use min::*;
+pub use spect::*;
+
+#[cfg(machine = "nes")]
+pub use nes::*;

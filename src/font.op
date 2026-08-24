@@ -9,6 +9,7 @@
 mod types;
 mod ram;
 mod api;
+mod data;
 
 #[cfg(machine = "nes")]
 mod nes;
@@ -24,3 +25,4 @@ pub use gameboy::*;
 
 pub use api::*;
 pub use types::*;
+pub use data::*;
