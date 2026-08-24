@@ -1,48 +1,242 @@
-//! Game Boy Font Tile Loader
+//! Font Text Display — Game Boy
 //!
-//! Runtime 1bpp to 2bpp interleaved tile loader. Writes font tile data
-//! to Game Boy VRAM at 0x8000. The 1bpp source data is expanded to
-//! 2bpp using the foreground and background colors set by
-//! `set_text_color`.
-//!
-//! This module is gated on `#[cfg(all(machine = "gameboy",
-//! any(variant = "gameboy", variant = "color")))]`.
+//! Text display functions for the Game Boy and Game Boy Color. Writes
+//! tile indices to the tile map at 0x9800. The cursor position is
+//! tracked in `_cursor_x` and `_cursor_y`.
 
 use super::types::*;
 use super::ram::*;
 use std::machine::*;
 
-// --- Game Boy runtime tile loader -------------------------------------------
+// --- Temp variables ---------------------------------------------------------
 
-inline fn _font_load_tiles(first, count, data) {
-    // Turn the LCD off so we can write to VRAM safely.
-    turn_video_off()
+_putchar_char: u8;
+_draw_text_ptr: pointer;
+_draw_text_len: u8;
 
-    // Set HL to the VRAM pattern table address.
-    ld h, #0x80
+// --- Cursor positioning -----------------------------------------------------
+
+inline fn gotoxy(x, y) {
+    assign(_cursor_x, x)
+    assign(_cursor_y, y)
+}
+
+// --- Helper: increment H (for carry from L) --------------------------------
+
+inline fn inc_h() {
+    ld a, h
+    inc
+    ld h, a
+}
+
+// --- Character output -------------------------------------------------------
+//
+// putchar writes the character in _putchar_char to the tile map at the
+// cursor position. The tile index is _putchar_char + first_tile.
+//
+// The tile map address is TILE_MAP_0_ADDRESS + _cursor_y * 32 + _cursor_x.
+// We compute this by starting at 0x9800, adding 32 for each row, then
+// adding 1 for each column.
+
+inline fn putchar(c) {
+    assign(_putchar_char, c)
+
+    // Set HL = 0x9800.
+    ld h, #0x98
     ld l, #0x00
 
-    // Save count in B.
-    ld b, count
+    // Add _cursor_y * 32 to HL.
+    ld_a (_cursor_y)
+    ld b, a
+    'pc_y_loop:
+    if (zero) { jp 'pc_y_done }
+    ld a, l
+    add #32
+    ld l, a
+    if (not carry) { jp 'pc_y_skip }
+    inc_h()
+    'pc_y_skip:
+    ld a, b
+    dec
+    ld b, a
+    jp 'pc_y_loop
+    'pc_y_done:
 
-    'tile_loop:
-    // Write 8 rows of interleaved plane 0 and plane 1.
-    ld c, #8
-    'row_loop:
-    // Write plane 0 byte.
+    // Add _cursor_x to HL by adding 1 x times.
+    ld_a (_cursor_x)
+    ld b, a
+    'pc_x_loop:
+    if (zero) { jp 'pc_x_done }
+    ld a, l
+    add #1
+    ld l, a
+    if (not carry) { jp 'pc_x_skip }
+    inc_h()
+    'pc_x_skip:
+    ld a, b
+    dec
+    ld b, a
+    jp 'pc_x_loop
+    'pc_x_done:
+
+    // Write the tile index: _putchar_char + first_tile.
+    // A = first_tile + char, computed by adding 1 char times.
+    ld_a (_font_current + 2)
+    ld b, a
+    ld_a (_putchar_char)
+    ld c, a
+    'pc_add_loop:
+    if (zero) { jp 'pc_add_done }
+    ld a, b
+    add #1
+    ld b, a
+    ld a, c
+    dec
+    ld c, a
+    jp 'pc_add_loop
+    'pc_add_done:
+    ld a, b
+    ld (hl), a
+
+    // Advance the cursor X. Wrap at 32.
+    ld_a (_cursor_x)
+    inc
+    ld (_cursor_x), a
+    cp #32
+    if (carry) { jp 'pc_done }
+    assign(_cursor_x, 0)
+    ld_a (_cursor_y)
+    inc
+    ld (_cursor_y), a
+    'pc_done:
+    nop
+}
+
+// --- String output ----------------------------------------------------------
+
+inline fn draw_text(x, y, str, len) {
+    gotoxy(x, y)
+    ld a, #lo!(str)
+    ld (_draw_text_ptr + 0), a
+    ld a, #hi!(str)
+    ld (_draw_text_ptr + 1), a
+    assign(_draw_text_len, len)
+
+    ld_a (_draw_text_ptr + 1)
+    ld d, a
+    ld_a (_draw_text_ptr + 0)
+    ld e, a
+    ld_a (_draw_text_len)
+    ld b, a
+    'dt_loop:
+    if (zero) { jp 'dt_done }
+    ld a, (de)
+    ld (_putchar_char), a
+
+    // Inline putchar body:
+    ld h, #0x98
+    ld l, #0x00
+    ld_a (_cursor_y)
+    ld c, a
+    'dt_y_loop:
+    if (zero) { jp 'dt_y_done }
+    ld a, l
+    add #32
+    ld l, a
+    if (not carry) { jp 'dt_y_skip }
+    inc_h()
+    'dt_y_skip:
+    ld a, c
+    dec
+    ld c, a
+    jp 'dt_y_loop
+    'dt_y_done:
+    ld_a (_cursor_x)
+    ld c, a
+    'dt_x_loop:
+    if (zero) { jp 'dt_x_done }
+    ld a, l
+    add #1
+    ld l, a
+    if (not carry) { jp 'dt_x_skip }
+    inc_h()
+    'dt_x_skip:
+    ld a, c
+    dec
+    ld c, a
+    jp 'dt_x_loop
+    'dt_x_done:
+    ld_a (_font_current + 2)
+    ld b, a
+    ld_a (_putchar_char)
+    ld c, a
+    'dt_add_loop:
+    if (zero) { jp 'dt_add_done }
+    ld a, b
+    add #1
+    ld b, a
+    ld a, c
+    dec
+    ld c, a
+    jp 'dt_add_loop
+    'dt_add_done:
+    ld a, b
+    ld (hl), a
+    ld_a (_cursor_x)
+    inc
+    ld (_cursor_x), a
+    cp #32
+    if (carry) { jp 'dt_pc_done }
+    assign(_cursor_x, 0)
+    ld_a (_cursor_y)
+    inc
+    ld (_cursor_y), a
+    'dt_pc_done:
+    nop
+
+    // Advance DE.
+    ld a, e
+    inc
+    ld e, a
+    if (not zero) { jp 'dt_de_done }
+    ld a, d
+    inc
+    ld d, a
+    'dt_de_done:
+
+    // Decrement counter.
+    ld a, b
+    dec
+    ld b, a
+    jp 'dt_loop
+    'dt_done:
+    nop
+}
+
+// --- Clear screen -----------------------------------------------------------
+
+inline fn cls() {
+    ld h, #0x98
+    ld l, #0x00
+    ld a, #0
+    ld b, a
+    'cls_outer:
+    ld a, #0
+    ld c, a
+    'cls_inner:
     ld a, #0
     ld (hl), a
-    inc hl
-    // Write plane 1 byte.
-    ld a, #0
-    ld (hl), a
-    inc hl
-    dec c
-    if (not zero) { jp 'row_loop }
+    inc_hl
+    ld a, c
+    inc
+    ld c, a
+    if (not zero) { jp 'cls_inner }
+    ld a, b
+    inc
+    ld b, a
+    cp #4
+    if (not zero) { jp 'cls_outer }
 
-    dec b
-    if (not zero) { jp 'tile_loop }
-
-    // Turn the LCD back on.
-    turn_video_on()
+    assign(_cursor_x, 0)
+    assign(_cursor_y, 0)
 }

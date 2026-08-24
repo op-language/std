@@ -1,53 +1,126 @@
-//! NES Font Tile Loader
+//! Font Text Display — NES
 //!
-//! Runtime 1bpp to 2-plane NES CHR tile loader. Writes font tile data
-//! to the PPU pattern table via CHR-RAM. The 1bpp source data is
-//! expanded to two bit planes using the foreground and background
-//! colors set by `set_text_color`.
-//!
-//! This module is gated on `#[cfg(machine = "nes")]`. The codegen
-//! prevents runtime loading on CHR-ROM-only mappers (NROM, UxROM,
-//! CNROM, etc.) by checking the mapper before expanding this function.
-//! Use `font_load!` in a `#[chr]` block for those mappers.
+//! Text display functions for the NES. Writes tile indices to the
+//! nametable via the PPU. The cursor position is tracked in
+//! `_cursor_x` and `_cursor_y`.
 
 use super::types::*;
 use super::ram::*;
 use std::machine::*;
 
-// --- NES runtime tile loader ------------------------------------------------
-//
-// The NES PPU pattern table is at VRAM address 0x0000. Each tile is 16
-// bytes: 8 bytes for plane 0, then 8 bytes for plane 1.
+// --- Temp variables ---------------------------------------------------------
 
-inline fn _font_load_tiles(first, count, data) {
-    // Set the PPU address to the pattern table at tile `first`.
-    // Each tile is 16 bytes. The address is first * 16.
+_putchar_char: u8;
+_draw_text_ptr: pointer;
+_draw_text_len: u8;
+
+// --- Cursor positioning -----------------------------------------------------
+
+inline fn gotoxy(x, y) {
+    assign(_cursor_x, x)
+    assign(_cursor_y, y)
+}
+
+// --- Character output -------------------------------------------------------
+
+inline fn putchar(c) {
+    // Store the character code.
+    assign(_putchar_char, c)
+
+    // Set the PPU address to the nametable at the cursor position.
     lda PPU::STATUS
-    lda #0
+    lda #hi!(NAME_TABLE_0_ADDRESS)
     sta PPU::ADDRESS
-    lda #0
+    lda _cursor_y
+    asl
+    asl
+    asl
+    asl
+    asl
+    clc
+    adc _cursor_x
     sta PPU::ADDRESS
 
-    // Save count in X.
-    ldx count
+    // Write the tile index: _putchar_char + first_tile.
+    lda _putchar_char
+    clc
+    adc _font_current + 2
+    sta PPU::IO
 
-    'tile_loop:
-    // Write 8 bytes of plane 0.
-    ldy #8
-    'plane0_loop:
+    // Advance the cursor X. Wrap at 32.
+    inc _cursor_x
+    lda _cursor_x
+    cmp #32
+    if (carry) {
+        assign(_cursor_x, 0)
+        inc _cursor_y
+    }
+}
+
+// --- String output ----------------------------------------------------------
+
+inline fn draw_text(x, y, str, len) {
+    gotoxy(x, y)
+    lda #lo!(str)
+    sta _draw_text_ptr + 0
+    lda #hi!(str)
+    sta _draw_text_ptr + 1
+    assign(_draw_text_len, len)
+
+    ldy #0
+    'draw_text_loop:
+    lda (_draw_text_ptr), y
+    sta _putchar_char
+
+    // Inline putchar body:
+    lda PPU::STATUS
+    lda #hi!(NAME_TABLE_0_ADDRESS)
+    sta PPU::ADDRESS
+    lda _cursor_y
+    asl
+    asl
+    asl
+    asl
+    asl
+    clc
+    adc _cursor_x
+    sta PPU::ADDRESS
+    lda _putchar_char
+    clc
+    adc _font_current + 2
+    sta PPU::IO
+    inc _cursor_x
+    lda _cursor_x
+    cmp #32
+    if (carry) {
+        assign(_cursor_x, 0)
+        inc _cursor_y
+    }
+
+    iny
+    dec _draw_text_len
+    if (not zero) { jp 'draw_text_loop }
+}
+
+// --- Clear screen -----------------------------------------------------------
+
+inline fn cls() {
+    lda PPU::STATUS
+    lda #hi!(NAME_TABLE_0_ADDRESS)
+    sta PPU::ADDRESS
+    lda #lo!(NAME_TABLE_0_ADDRESS)
+    sta PPU::ADDRESS
+
+    ldx #4
+    ldy #240
     lda #0
+    'cls_loop:
     sta PPU::IO
     dey
-    if (not zero) { jp 'plane0_loop }
-
-    // Write 8 bytes of zeros for plane 1.
-    ldy #8
-    'plane1_loop:
-    lda #0
-    sta PPU::IO
-    dey
-    if (not zero) { jp 'plane1_loop }
-
+    if (not zero) { jp 'cls_loop }
     dex
-    if (not zero) { jp 'tile_loop }
+    if (not zero) { jp 'cls_loop }
+
+    assign(_cursor_x, 0)
+    assign(_cursor_y, 0)
 }
