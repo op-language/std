@@ -1,0 +1,32 @@
+//! Panic / Crash Handler
+//!
+//! This module provides the crash handler infrastructure. When an
+//! `assert!` or `panic!` macro fires at runtime, the code stashes the
+//! source file, source line, and message into fixed RAM variables,
+//! then jumps to the crash handler.
+//!
+//! The default crash handler disables interrupts, clears the screen,
+//! and enters an infinite loop. A user can override it with
+//! `#[crash_handler] noreturn fn my_handler() { ... }`.
+
+// --- RAM variables for panic info -------------------------------------------
+
+/// Pointer to the source file name string in ROM.
+__panic_file: pointer;
+
+/// The source line number.
+__panic_line: u16;
+
+/// Pointer to the panic message string in ROM.
+__panic_msg: pointer;
+
+// --- Default crash handler -------------------------------------------------
+//
+//! The default crash handler. Disables interrupts, clears the screen,
+//! and loops forever.
+
+pub noreturn fn __op_default_crash_handler() {
+    disable_interrupts()
+    cls()
+    loop {}
+}
