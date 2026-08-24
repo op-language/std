@@ -14,6 +14,35 @@ _putchar_char: u8;
 _draw_text_ptr: pointer;
 _draw_text_len: u8;
 
+// --- Game Boy runtime tile loader -------------------------------------------
+
+inline fn _font_load_tiles(first, count, data) {
+    turn_video_off()
+    ld h, #0x80
+    ld l, #0x00
+    ld_a (count)
+    ld b, a
+    'gb_tile_loop:
+    ld a, #8
+    ld c, a
+    'gb_row_loop:
+    ld a, #0
+    ld (hl), a
+    inc_hl
+    ld a, #0
+    ld (hl), a
+    inc_hl
+    ld a, c
+    dec
+    ld c, a
+    if (not zero) { jp 'gb_row_loop }
+    ld a, b
+    dec
+    ld b, a
+    if (not zero) { jp 'gb_tile_loop }
+    turn_video_on()
+}
+
 // --- Cursor positioning -----------------------------------------------------
 
 inline fn gotoxy(x, y) {
@@ -239,4 +268,49 @@ inline fn cls() {
 
     assign(_cursor_x, 0)
     assign(_cursor_y, 0)
+}
+
+// --- Font loading (Game Boy / SM83) -----------------------------------------
+
+inline fn font_load(font) {
+    ld a, #lo!(font.data)
+    ld (_font_current + 0), a
+    ld a, #hi!(font.data)
+    ld (_font_current + 1), a
+    assign(_font_current + 2, font_first_free_tile)
+    _font_load_tiles(font_first_free_tile, font.tile_count, font.data)
+    // Advance first_free_tile (SM83 has no adc r — use loop).
+    ld_a (font_first_free_tile)
+    ld b, a
+    ld_a (font.tile_count)
+    ld c, a
+    'gb_add_loop:
+    if (zero) { jp 'gb_add_done }
+    ld a, b
+    add #1
+    ld b, a
+    ld a, c
+    dec
+    ld c, a
+    jp 'gb_add_loop
+    'gb_add_done:
+    ld a, b
+    ld (font_first_free_tile), a
+}
+
+inline fn font_register(font) {
+    ld a, #lo!(font.data)
+    ld (_font_current + 0), a
+    ld a, #hi!(font.data)
+    ld (_font_current + 1), a
+    assign(_font_current + 2, 0)
+}
+
+inline fn font_set(handle) {
+    ld_a (handle + 0)
+    ld (_font_current + 0), a
+    ld_a (handle + 1)
+    ld (_font_current + 1), a
+    ld_a (handle + 2)
+    ld (_font_current + 2), a
 }

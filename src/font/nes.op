@@ -14,6 +14,32 @@ _putchar_char: u8;
 _draw_text_ptr: pointer;
 _draw_text_len: u8;
 
+// --- NES runtime tile loader ------------------------------------------------
+
+inline fn _font_load_tiles(first, count, data) {
+    lda PPU::STATUS
+    lda #0
+    sta PPU::ADDRESS
+    lda #0
+    sta PPU::ADDRESS
+    ldx count
+    'tile_loop:
+    ldy #8
+    'plane0_loop:
+    lda #0
+    sta PPU::IO
+    dey
+    if (not zero) { jp 'plane0_loop }
+    ldy #8
+    'plane1_loop:
+    lda #0
+    sta PPU::IO
+    dey
+    if (not zero) { jp 'plane1_loop }
+    dex
+    if (not zero) { jp 'tile_loop }
+}
+
 // --- Cursor positioning -----------------------------------------------------
 
 inline fn gotoxy(x, y) {
@@ -123,4 +149,36 @@ inline fn cls() {
 
     assign(_cursor_x, 0)
     assign(_cursor_y, 0)
+}
+
+// --- Font loading (NES / 6502) ----------------------------------------------
+
+inline fn font_load(font) {
+    lda #lo!(font.data)
+    sta _font_current + 0
+    lda #hi!(font.data)
+    sta _font_current + 1
+    assign(_font_current + 2, font_first_free_tile)
+    _font_load_tiles(font_first_free_tile, font.tile_count, font.data)
+    lda font_first_free_tile
+    clc
+    adc font.tile_count
+    sta font_first_free_tile
+}
+
+inline fn font_register(font) {
+    lda #lo!(font.data)
+    sta _font_current + 0
+    lda #hi!(font.data)
+    sta _font_current + 1
+    assign(_font_current + 2, 0)
+}
+
+inline fn font_set(handle) {
+    lda handle + 0
+    sta _font_current + 0
+    lda handle + 1
+    sta _font_current + 1
+    lda handle + 2
+    sta _font_current + 2
 }
