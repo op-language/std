@@ -20,99 +20,101 @@ inline fn disable_interrupts() {
 // --- joypad ----------------------------------------------------------------
 
 inline fn read_joypad() {
-    ld a, #0x20
-    ldh (JOYPAD), a
-    ldh a, (JOYPAD)
+    ld #0x20
+    ldh (JOYPAD)
+    ldh #JOYPAD
     and #0x0F
-    ld (_joypad_raw), a
-    ld a, #0x10
-    ldh (JOYPAD), a
-    ldh a, (JOYPAD)
+    ld_addr (_joypad_raw)
+    ld #0x10
+    ldh (JOYPAD)
+    ldh #JOYPAD
     and #0x0F
-    ld (_joypad_raw + 1), a
+    ld_addr (_joypad_raw + 1)
 }
 
 // --- vblank wait ------------------------------------------------------------
 
 inline fn vblank_wait() {
     do {
-        ldh a, (LCD::STATUS)
+        ldh #LCD::STATUS
         and #3
     } while (zero)
+    do {
+        ldh #LCD::STATUS
+        and #3
+    } while (not zero)
 }
 
 // --- DMA copy ---------------------------------------------------------------
 
 inline fn dma_copy(src) {
-    ld a, #hi!(src)
-    ldh (LCD::DMA), a
+    ld #hi!(src)
+    ldh (LCD::DMA)
 }
 
 // --- system initialization -------------------------------------------------
 
 inline fn system_initialize() {
     disable_interrupts()
-    ld a, #0
-    ldh (LCD::CONTROL), a
-    ldh (LCD::SCROLL_Y), a
-    ldh (LCD::SCROLL_X), a
-    ldh (LCD::BG_PALETTE), a
+    ld #0
+    ldh (LCD::CONTROL)
+    ld #0
+    ldh (LCD::SCROLL_Y)
+    ld #0
+    ldh (LCD::SCROLL_X)
+    ld #0
+    ldh (LCD::BG_PALETTE)
 }
 
 // --- video control ---------------------------------------------------------
 
 inline fn turn_video_on() {
-    ld a, #LCD_BG_ENABLE
-    ldh (LCD::CONTROL), a
+    ld #LCD_BG_ENABLE
+    ldh (LCD::CONTROL)
 }
 
 inline fn turn_video_off() {
-    ld a, #0
-    ldh (LCD::CONTROL), a
+    ld #0
+    ldh (LCD::CONTROL)
 }
 
 // --- VRAM addressing -------------------------------------------------------
 //
-// The Game Boy VRAM is directly addressable at 0x8000-0x9FFF. Set HL
-// to the target address, then use ld (hl), a to write and inc hl to
+// The Game Boy VRAM is directly addressable at 0x8000-0x9FFF. Use
+// ld_hl to set the target address, then ldi (LD (HL+),A) to write and
 // advance.
 
 inline fn vram_set_address_hl(addr) {
-    ld h, #hi!(addr)
-    ld l, #lo!(addr)
+    ld_hl #addr
 }
 
 // --- VRAM data -------------------------------------------------------------
 
 inline fn vram_write_a() {
-    ld (hl), a
-    inc hl
+    ldi
 }
 
 inline fn vram_write(value) {
-    ld a, #value
-    ld (hl), a
-    inc hl
+    ld #value
+    ldi
 }
 
 inline fn vram_clear_address() {
-    // No address latch on the Game Boy. This is a no-op for NES
-    // compatibility.
     nop
 }
 
 // --- assignment helpers ----------------------------------------------------
 
 inline fn assign(dest, value) {
-    ld a, #value
-    ld (dest), a
+    ld #value
+    ld_addr (dest)
 }
 
 inline fn assign_16i(dest, value) {
-    ld a, #lo!(value)
-    ld (dest + 0), a
-    ld a, #hi!(value)
-    ld (dest + 1), a
+    ld #lo!(value)
+    ld_addr (dest + 0)
+    ld #hi!(value)
+    ld_addr (dest + 1)
 }
 
 // --- Game Boy Color palette macros -----------------------------------------
@@ -122,20 +124,20 @@ inline fn assign_16i(dest, value) {
 
 #[cfg(variant = "color")]
 inline fn cgb_set_bg_palette(index, color) {
-    ld a, #index
-    ldh (CGB_PALETTE::BCPS), a
-    ld a, #lo!(color)
-    ldh (CGB_PALETTE::BCPD), a
-    ld a, #hi!(color)
-    ldh (CGB_PALETTE::BCPD), a
+    ld #index
+    ldh (CGB_PALETTE::BCPS)
+    ld #lo!(color)
+    ldh (CGB_PALETTE::BCPD)
+    ld #hi!(color)
+    ldh (CGB_PALETTE::BCPD)
 }
 
 #[cfg(variant = "color")]
 inline fn cgb_set_sprite_palette(index, color) {
-    ld a, #index
-    ldh (CGB_PALETTE::OCPS), a
-    ld a, #lo!(color)
-    ldh (CGB_PALETTE::OCPD), a
-    ld a, #hi!(color)
-    ldh (CGB_PALETTE::OCPD), a
+    ld #index
+    ldh (CGB_PALETTE::OCPS)
+    ld #lo!(color)
+    ldh (CGB_PALETTE::OCPD)
+    ld #hi!(color)
+    ldh (CGB_PALETTE::OCPD)
 }

@@ -19,3 +19,6 @@ pub use spect::*;
 
 #[cfg(machine = "nes")]
 pub use nes::*;
+
+#[cfg(machine = "gameboy")]
+pub use nes::*;
