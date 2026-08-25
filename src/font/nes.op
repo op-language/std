@@ -29,15 +29,15 @@ inline fn _font_load_tiles(first, count, data) {
     lda #0
     sta PPU::IO
     dey
-    if (not zero) { jp 'plane0_loop }
+    if (not zero) { jmp 'plane0_loop }
     ldy #8
     'plane1_loop:
     lda #0
     sta PPU::IO
     dey
-    if (not zero) { jp 'plane1_loop }
+    if (not zero) { jmp 'plane1_loop }
     dex
-    if (not zero) { jp 'tile_loop }
+    if (not zero) { jmp 'tile_loop }
 }
 
 // --- Cursor positioning -----------------------------------------------------
@@ -125,7 +125,7 @@ inline fn draw_text(x, y, str, len) {
 
     iny
     dec _draw_text_len
-    if (not zero) { jp 'draw_text_loop }
+    if (not zero) { jmp 'draw_text_loop }
 }
 
 // --- Clear screen -----------------------------------------------------------
@@ -143,9 +143,9 @@ inline fn cls() {
     'cls_loop:
     sta PPU::IO
     dey
-    if (not zero) { jp 'cls_loop }
+    if (not zero) { jmp 'cls_loop }
     dex
-    if (not zero) { jp 'cls_loop }
+    if (not zero) { jmp 'cls_loop }
 
     assign(_cursor_x, 0)
     assign(_cursor_y, 0)
