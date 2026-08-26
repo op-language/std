@@ -1,0 +1,184 @@
+//! Font Text Display — NES
+//!
+//! Text display functions for the NES. Writes tile indices to the
+//! nametable via the PPU. The cursor position is tracked in
+//! `_cursor_x` and `_cursor_y`.
+
+use super::types::*;
+use super::ram::*;
+use std::machine::*;
+
+// --- Temp variables ---------------------------------------------------------
+
+_putchar_char: u8;
+_draw_text_ptr: pointer;
+_draw_text_len: u8;
+
+// --- NES runtime tile loader ------------------------------------------------
+
+inline fn _font_load_tiles(first, count, data) {
+    lda PPU::STATUS
+    lda #0
+    sta PPU::ADDRESS
+    lda #0
+    sta PPU::ADDRESS
+    ldx count
+    'tile_loop:
+    ldy #8
+    'plane0_loop:
+    lda #0
+    sta PPU::IO
+    dey
+    if (not zero) { jmp 'plane0_loop }
+    ldy #8
+    'plane1_loop:
+    lda #0
+    sta PPU::IO
+    dey
+    if (not zero) { jmp 'plane1_loop }
+    dex
+    if (not zero) { jmp 'tile_loop }
+}
+
+// --- Cursor positioning -----------------------------------------------------
+
+inline fn gotoxy(x, y) {
+    assign(_cursor_x, x)
+    assign(_cursor_y, y)
+}
+
+// --- Character output -------------------------------------------------------
+
+inline fn putchar(c) {
+    // Store the character code.
+    assign(_putchar_char, c)
+
+    // Set the PPU address to the nametable at the cursor position.
+    lda PPU::STATUS
+    lda #hi!(NAME_TABLE_0_ADDRESS)
+    sta PPU::ADDRESS
+    lda _cursor_y
+    asl
+    asl
+    asl
+    asl
+    asl
+    clc
+    adc _cursor_x
+    sta PPU::ADDRESS
+
+    // Write the tile index: _putchar_char + first_tile.
+    lda _putchar_char
+    clc
+    adc _font_current + 2
+    sta PPU::IO
+
+    // Advance the cursor X. Wrap at 32.
+    inc _cursor_x
+    lda _cursor_x
+    cmp #32
+    if (carry) {
+        assign(_cursor_x, 0)
+        inc _cursor_y
+    }
+}
+
+// --- String output ----------------------------------------------------------
+
+inline fn draw_text(x, y, str, len) {
+    gotoxy(x, y)
+    lda #lo!(str)
+    sta _draw_text_ptr + 0
+    lda #hi!(str)
+    sta _draw_text_ptr + 1
+    assign(_draw_text_len, len)
+
+    ldy #0
+    'draw_text_loop:
+    lda (_draw_text_ptr), y
+    sta _putchar_char
+
+    // Inline putchar body:
+    lda PPU::STATUS
+    lda #hi!(NAME_TABLE_0_ADDRESS)
+    sta PPU::ADDRESS
+    lda _cursor_y
+    asl
+    asl
+    asl
+    asl
+    asl
+    clc
+    adc _cursor_x
+    sta PPU::ADDRESS
+    lda _putchar_char
+    clc
+    adc _font_current + 2
+    sta PPU::IO
+    inc _cursor_x
+    lda _cursor_x
+    cmp #32
+    if (carry) {
+        assign(_cursor_x, 0)
+        inc _cursor_y
+    }
+
+    iny
+    dec _draw_text_len
+    if (not zero) { jmp 'draw_text_loop }
+}
+
+// --- Clear screen -----------------------------------------------------------
+
+inline fn cls() {
+    lda PPU::STATUS
+    lda #hi!(NAME_TABLE_0_ADDRESS)
+    sta PPU::ADDRESS
+    lda #lo!(NAME_TABLE_0_ADDRESS)
+    sta PPU::ADDRESS
+
+    ldx #4
+    ldy #240
+    lda #0
+    'cls_loop:
+    sta PPU::IO
+    dey
+    if (not zero) { jmp 'cls_loop }
+    dex
+    if (not zero) { jmp 'cls_loop }
+
+    assign(_cursor_x, 0)
+    assign(_cursor_y, 0)
+}
+
+// --- Font loading (NES / 6502) ----------------------------------------------
+
+inline fn font_load(font) {
+    lda #lo!(font.data)
+    sta _font_current + 0
+    lda #hi!(font.data)
+    sta _font_current + 1
+    assign(_font_current + 2, font_first_free_tile)
+    _font_load_tiles(font_first_free_tile, font.tile_count, font.data)
+    lda font_first_free_tile
+    clc
+    adc font.tile_count
+    sta font_first_free_tile
+}
+
+inline fn font_register(font) {
+    lda #lo!(font.data)
+    sta _font_current + 0
+    lda #hi!(font.data)
+    sta _font_current + 1
+    assign(_font_current + 2, 0)
+}
+
+inline fn font_set(handle) {
+    lda handle + 0
+    sta _font_current + 0
+    lda handle + 1
+    sta _font_current + 1
+    lda handle + 2
+    sta _font_current + 2
+}

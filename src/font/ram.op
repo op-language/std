@@ -1,0 +1,30 @@
+//! Font RAM
+//!
+//! Shadow variables for the font system. These are private to the font
+//! module and are not re-exported.
+
+/// Maximum number of fonts that can be loaded at the same time.
+const MAX_FONTS: u8 = 6;
+
+/// Table of loaded font handles. Each entry has a first_tile byte and a
+/// font data pointer (2 bytes). A free slot has a null font pointer.
+font_table: [font_handle_t; MAX_FONTS];
+
+/// The first free VRAM tile index. Advanced by tile_count each time a font
+/// is loaded.
+font_first_free_tile: u8;
+
+/// The current foreground color for 1bpp to 2bpp expansion.
+_current_fg: u8;
+
+/// The current background color for 1bpp to 2bpp expansion.
+_current_bg: u8;
+
+/// The current font handle. Set by `font_load` and `font_set`.
+_font_current: font_handle_t;
+
+/// The cursor X position (column 0-31).
+_cursor_x: u8;
+
+/// The cursor Y position (row 0-31).
+_cursor_y: u8;

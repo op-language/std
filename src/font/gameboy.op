@@ -1,0 +1,399 @@
+//! Font Text Display — Game Boy
+//!
+//! Text display functions for the Game Boy and Game Boy Color. Writes
+//! tile indices to the tile map at 0x9800. The cursor position is
+//! tracked in `_cursor_x` and `_cursor_y`.
+//!
+//! All functions use only the working SM83 subset (ld #n, ld_a (nn),
+//! ld_addr (nn), ldh #n, ldh (n), ld_hl/ld_de/ld_bc #nn, ld_a_hl/
+//! ld_a_bc/ld_a_de, inc_hl/inc_de/inc_bc, ldi, cpl, dec, cp, do/while,
+//! if, loop, jp).
+
+use super::types::*;
+use super::ram::*;
+use std::machine::*;
+
+// --- Temp variables ---------------------------------------------------------
+
+_putchar_char: u8;
+_draw_text_ptr_lo: u8;
+_draw_text_ptr_hi: u8;
+_draw_text_len: u8;
+_ft_outer: u8;
+_ft_inner: u8;
+
+// --- Game Boy runtime tile loader -------------------------------------------
+//
+// Copies 1bpp tile data from ROM to VRAM, expanding each row to 2bpp.
+// The font blob is: [flags][tile_count][enc_table][1bpp_tiles].
+// The tile data starts at offset 2 + enc_table_size, where enc_table_size
+// is 256 (ENCODE_256), 128 (ENCODE_128), or 0 (ENCODE_NONE).
+//
+// The 2bpp expansion for fg=0, bg=3 is: plane0 = plane1 = ~row (CPL).
+// Other fg/bg combinations are not yet supported.
+
+inline fn _font_load_tiles(first, count, data) {
+    // Turn the LCD off before writing VRAM.
+    ld #0
+    ldh (LCD::CONTROL)
+    // HL = VRAM pattern table at 0x8000 + first*16.
+    // For simplicity, start at 0x8000 (first is always 0 for the
+    // first font load).
+    ld_hl #0x8000
+    // DE = font data blob address. The data pointer comes in as
+    // lo!/hi! of the font.data field, stored in _font_current.
+    ld_a (_font_current + 0)
+    ld #0
+    ld_addr (_ft_outer)
+    // Add enc_table offset to DE to skip the header + encoding table.
+    // The encoding mode is in flags & 3. For ENCODE_256 (mode 0):
+    //   offset = 2 + 256 = 258. For ENCODE_128 (mode 1): 2 + 128 = 130.
+    //   For ENCODE_NONE (mode 2): 2 + 0 = 2.
+    // We read the flags byte from the blob to determine the offset.
+    // DE = font.data (from _font_current + 0/1).
+    ld_a (_font_current + 1)
+    ld_de #0
+    // Reconstruct DE from _font_current pointer fields:
+    // D = _font_current + 1 (hi), E = _font_current + 0 (lo).
+    // We can't do ld d, a / ld e, a (not in the subset).
+    // Instead, use ld_de #lo!(font.data) directly — the compiler
+    // emits a relocation now that array-const pointer fields don't
+    // resolve to their length.
+    ld_de #data
+    // Skip the header (2 bytes) + encoding table.
+    // Read flags byte to determine encoding table size.
+    ld_a_de
+    // A = flags. encoding = flags & 3. Bit 0 set = 128-byte table.
+    // Bit 1 set = no table. Both clear = 256-byte table.
+    // For the NES font: flags=0x04, enc=0 (256-byte table), skip=258.
+    // For the IBM GB font: flags=0x05, enc=1 (128-byte table), skip=130.
+    // We check bit 1: if set, skip=2. Else check bit 0: if set, skip=130.
+    // Else skip=258.
+    and #2
+    if (not zero) {
+        // ENCODE_NONE: skip = 2
+        inc_de
+        inc_de
+    } else {
+        // Check bit 0 for ENCODE_128 vs ENCODE_256
+        ld_a_de
+        and #1
+        if (not zero) {
+            // ENCODE_128: skip = 130 (2 + 128)
+            ld #128
+            ld_addr (_ft_outer)
+            do {
+                inc_de
+                ld_a (_ft_outer)
+                dec
+                ld_addr (_ft_outer)
+            } while (not zero)
+            inc_de
+            inc_de
+        } else {
+            // ENCODE_256: skip = 258 (2 + 256)
+            ld #0
+            ld_addr (_ft_outer)
+            do {
+                inc_de
+                ld_a (_ft_outer)
+                dec
+                ld_addr (_ft_outer)
+            } while (not zero)
+            inc_de
+            inc_de
+        }
+    }
+    // Now DE points to the first 1bpp tile. Copy count tiles,
+    // expanding each row from 1bpp to 2bpp.
+    // Outer loop: count tiles.
+    ld_a (count)
+    ld_addr (_ft_outer)
+    do {
+        // Inner loop: 8 rows per tile.
+        ld #8
+        ld_addr (_ft_inner)
+        do {
+            // Read 1bpp row byte.
+            ld_a_de
+            inc_de
+            // Expand to 2bpp: plane0 = plane1 = row (ink -> colour 3,
+            // paper -> colour 0), giving dark text on a light background.
+            ldi
+            // Write plane 1 (same value) to VRAM.
+            // A still holds the row value (ldi doesn't change A).
+            ldi
+            // Decrement row counter.
+            ld_a (_ft_inner)
+            dec
+            ld_addr (_ft_inner)
+        } while (not zero)
+        // Decrement tile counter.
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+}
+
+// --- Cursor positioning -----------------------------------------------------
+
+inline fn gotoxy(x, y) {
+    assign(_cursor_x, x)
+    assign(_cursor_y, y)
+}
+
+// --- Character output -------------------------------------------------------
+//
+// putchar writes the character in _putchar_char to the tile map at the
+// cursor position. The tile index is _putchar_char + first_tile.
+//
+// The tile map address is TILE_MAP_0_ADDRESS + _cursor_y * 32 + _cursor_x.
+
+inline fn putchar(c) {
+    assign(_putchar_char, c)
+
+    // Set HL = 0x9800 + _cursor_y * 32 + _cursor_x.
+    // Start at 0x9800, add _cursor_y * 32, then add _cursor_x.
+    ld_hl #0x9800
+    // Add _cursor_y * 32: loop _cursor_y times, adding 32 to HL each time.
+    ld_a (_cursor_y)
+    ld_addr (_ft_outer)
+    do {
+        if (zero) {
+            jp 'pc_y_done
+        }
+        // HL += 32. We can't do add hl, #32 directly, so use:
+        // A = L, A += 32, L = A... but we can't ld l, a.
+        // Instead, use ld_a_hl to read (HL), but that reads memory not HL.
+        // We need to add 32 to HL. Use ld_hl with a computed address?
+        // No — ld_hl only takes an immediate.
+        // Alternative: use 32 iterations of inc_hl.
+        ld #32
+        ld_addr (_ft_inner)
+        do {
+            inc_hl
+            ld_a (_ft_inner)
+            dec
+            ld_addr (_ft_inner)
+        } while (not zero)
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'pc_y_done:
+
+    // Add _cursor_x to HL: loop _cursor_x times, inc_hl.
+    ld_a (_cursor_x)
+    ld_addr (_ft_outer)
+    do {
+        if (zero) {
+            jp 'pc_x_done
+        }
+        inc_hl
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'pc_x_done:
+
+    // Write the tile index: _putchar_char + first_tile.
+    // first_tile is in _font_current + 2.
+    ld_a (_font_current + 2)
+    ld_addr (_ft_outer)
+    ld_a (_putchar_char)
+    do {
+        if (zero) {
+            jp 'pc_add_done
+        }
+        add #1
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'pc_add_done:
+    // A = tile index. Write to (HL) via ldi.
+    ldi
+
+    // Advance the cursor X. Wrap at 32.
+    ld_a (_cursor_x)
+    inc
+    ld_addr (_cursor_x)
+    cp #32
+    if (not carry) {
+        assign(_cursor_x, 0)
+        ld_a (_cursor_y)
+        inc
+        ld_addr (_cursor_y)
+    }
+}
+
+// --- String output ----------------------------------------------------------
+
+inline fn draw_text(x, y, str, len) {
+    gotoxy(x, y)
+    // String length counter.
+    assign(_draw_text_len, len)
+    // DE = pointer to the start of the string. Loaded once before the
+    // loop; advanced by inc_de at the end of each iteration. (ld_de #str
+    // emits a relocation to the array const's ROM address.)
+    ld_de #str
+
+    'dt_loop:
+    // Read the current character at (DE).
+    ld_a_de
+    ld_addr (_putchar_char)
+
+    // Inline putchar body: compute tile map address and write.
+    ld_hl #0x9800
+    // HL += _cursor_y * 32 (skipped when _cursor_y is 0).
+    ld_a (_cursor_y)
+    cp #0
+    if (zero) { jp 'dt_y_done' }
+    ld_addr (_ft_outer)
+    do {
+        ld #32
+        ld_addr (_ft_inner)
+        do {
+            inc_hl
+            ld_a (_ft_inner)
+            dec
+            ld_addr (_ft_inner)
+        } while (not zero)
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'dt_y_done:
+    // HL += _cursor_x (skipped when _cursor_x is 0).
+    ld_a (_cursor_x)
+    cp #0
+    if (zero) { jp 'dt_x_done' }
+    ld_addr (_ft_outer)
+    do {
+        inc_hl
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'dt_x_done:
+    // tile index = _putchar_char + first_tile. Add first_tile to the
+    // char, but only when first_tile is nonzero (a do-while started at
+    // zero would wrap the counter and over-add).
+    ld_a (_font_current + 2)
+    cp #0
+    if (zero) { jp 'dt_tile' }
+    ld_a (_font_current + 2)
+    ld_addr (_ft_outer)
+    do {
+        ld_a (_putchar_char)
+        add #1
+        ld_addr (_putchar_char)
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'dt_tile:
+    ld_a (_putchar_char)
+    ldi
+    // Advance the cursor X; wrap to the next row at column 32.
+    ld_a (_cursor_x)
+    inc
+    ld_addr (_cursor_x)
+    cp #32
+    if (zero) {
+        assign(_cursor_x, 0)
+        ld_a (_cursor_y)
+        inc
+        ld_addr (_cursor_y)
+    }
+
+    // Advance DE (string pointer).
+    inc_de
+    // Decrement length counter.
+    ld_a (_draw_text_len)
+    dec
+    ld_addr (_draw_text_len)
+    if (not zero) { jp 'dt_loop }
+    'dt_done:
+    nop
+}
+
+// --- Clear screen -----------------------------------------------------------
+
+inline fn cls() {
+    ld_hl #0x9800
+    // Clear 1024 bytes (32x32 tile map) = 4 * 256.
+    ld #4
+    ld_addr (_ft_outer)
+    do {
+        ld #0
+        ld_addr (_ft_inner)
+        do {
+            ld #0
+            ldi
+            ld_a (_ft_inner)
+            dec
+            ld_addr (_ft_inner)
+        } while (not zero)
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    assign(_cursor_x, 0)
+    assign(_cursor_y, 0)
+}
+
+// --- Font loading (Game Boy / SM83) -----------------------------------------
+
+inline fn font_load(font) {
+    // Store the font data pointer and first tile in _font_current.
+    // With the compiler fix, lo!/hi! of font.data (a struct field
+    // pointing to an array const) now emits relocations instead of
+    // resolving to the array length.
+    ld #lo!(font.data)
+    ld_addr (_font_current + 0)
+    ld #hi!(font.data)
+    ld_addr (_font_current + 1)
+    // Capture the current first-free-tile as this font's first_tile.
+    // font_first_free_tile is a RAM variable, so load its *value* with
+    // ld_a (an address load); `ld #var` would emit the address, not the value.
+    ld_a (font_first_free_tile)
+    ld_addr (_font_current + 2)
+    // Load tiles to VRAM with 1bpp->2bpp expansion.
+    _font_load_tiles(font_first_free_tile, font.tile_count, font.data)
+    // Advance first_free_tile by tile_count (a loop, since there is no
+    // adc): increment _ft_outer (= first_free_tile) tile_count times.
+    ld_a (font_first_free_tile)
+    ld_addr (_ft_outer)
+    ld_a (font.tile_count)
+    ld_addr (_ft_inner)
+    do {
+        if (zero) { jp 'gb_ft_done }
+        ld_a (_ft_outer)
+        add #1
+        ld_addr (_ft_outer)
+        ld_a (_ft_inner)
+        dec
+        ld_addr (_ft_inner)
+    } while (not zero)
+    'gb_ft_done:
+    ld_a (_ft_outer)
+    ld_addr (font_first_free_tile)
+}
+
+inline fn font_register(font) {
+    ld #lo!(font.data)
+    ld_addr (_font_current + 0)
+    ld #hi!(font.data)
+    ld_addr (_font_current + 1)
+    assign(_font_current + 2, 0)
+}
+
+inline fn font_set(handle) {
+    ld_a (handle + 0)
+    ld_addr (_font_current + 0)
+    ld_a (handle + 1)
+    ld_addr (_font_current + 1)
+    ld_a (handle + 2)
+    ld_addr (_font_current + 2)
+}

@@ -1,0 +1,24 @@
+//! Font Shared API
+//!
+//! Cross-platform inline functions for font initialization and color
+//! setting. Platform-specific font loading (font_load, font_register,
+//! font_set) is in nes.op and gameboy.op.
+
+use super::types::*;
+use super::ram::*;
+use std::machine::*;
+
+// --- Font initialization ----------------------------------------------------
+
+inline fn font_init() {
+    assign(font_first_free_tile, 0)
+    assign(_cursor_x, 0)
+    assign(_cursor_y, 0)
+}
+
+// --- Text color ------------------------------------------------------------
+
+inline fn set_text_color(fg, bg) {
+    assign(_current_fg, fg)
+    assign(_current_bg, bg)
+}
