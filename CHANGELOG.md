@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0]
+
+### Added
+- Font loading and text display API (`src/font/`):
+  - `font_t` and `font_handle_t` structs, `FONT_ENCODING`,
+    `FONT_SIZE`, `FONT_STYLE`, and `FONT_SPACING` enums in
+    `src/font/types.op`.
+  - `font_init`, `set_text_color` shared API in `src/font/api.op`.
+  - Game Boy font functions in `src/font/gameboy.op`: `font_load`,
+    `font_register`, `font_set`, `draw_text`, `putchar`, `gotoxy`,
+    `cls`, and the internal `_font_load_tiles` 1bpp-to-2bpp tile
+    expander.
+  - NES font functions in `src/font/nes.op`: `font_load`,
+    `font_register`, `font_set`, `draw_text`, `putchar`, `cls`.
+  - Font RAM variables in `src/font/ram.op`: `font_first_free_tile`,
+    `_font_current`, `_cursor_x`, `_cursor_y`, `_current_fg`,
+    `_current_bg`.
+  - Bundled font data arrays in `src/font/data/`: NES, IBM, IBM fixed,
+    italic, min, and spect fonts. Each font has target-specific arrays
+    gated by `#[cfg]` (e.g. `NES_SMALL_NORMAL_GAMEBOY` for DMG,
+    `NES_SMALL_NORMAL_GAMEBOY_COLOR` for CGB) and a `FONT_*` struct
+    constant.
+- `src/panic.op` crash handler with `panic` and `assert` macros.
+- `docs/FONT_REFERENCE.md` documenting the binary font blob format.
+- `debug` feature in `Cart.toml`.
+
+### Changed
+- `src/font.op` re-exports the platform-specific font module
+  (`gameboy` or `nes`) and the shared `api`, `types`, and `data`
+  modules.
+- `src/machine/gameboy/macros.op`: `system_initialize` now zeros
+  `LCD::BG_PALETTE`. Added `cgb_set_bg_palette` and
+  `cgb_set_sprite_palette` macros (gated on `#[cfg(variant = "color")]`).
+
 ## [0.5.0]
 
 ### Added
