@@ -6,8 +6,23 @@
 //!
 //! All functions use only the working SM83 subset (ld #n, ld_a (nn),
 //! ld_addr (nn), ldh #n, ldh (n), ld_hl/ld_de/ld_bc #nn, ld_a_hl/
-//! ld_a_bc/ld_a_de, inc_hl/inc_de/inc_bc, ldi, cpl, dec, cp, do/while,
-//! if, loop, jp).
+//! ld_a_bc/ld_a_de, ld_ba/ld_ca/ld_ab/ld_ac, inc_hl/inc_de/inc_bc,
+//! ldi, cpl, dec, cp, do/while, if, loop, jp).
+//!
+//! Long loops live in non-inline fns (single copy in ROM, e.g.
+//! _dt_loop, _fls_loop): inline fn labels are section-global and
+//! collide across inlined copies, and do-while back-jumps are
+//! relative JRs with a 128-byte reach.
+//!
+//! Compiler constraints (opc 0.10.0):
+//!
+//! - `if ... else` and `while` emit a 6502-style JMP (0x4C) on SM83
+//!   instead of JP (0xC3). Never use if-else or while here; use
+//!   `if` without an else block plus explicit `jp` labels.
+//! - `ld_a (expr)` on a const expression loads from memory address
+//!   `expr`, not the value. Use `ld #expr` to load a const value.
+//! - A loop's `if (zero)` guard must be preceded by an explicit `cp #0`
+//!   of the counter value; stale flags are not reliable.
 
 use super::types::*;
 use super::ram::*;
@@ -21,6 +36,34 @@ _draw_text_ptr_hi: u8;
 _draw_text_len: u8;
 _ft_outer: u8;
 _ft_inner: u8;
+// Slot counter for font_load_string. Dedicated: the generic scratch
+// bytes are reused as loop counters inside the per-character loop.
+_fls_slot: u8;
+
+// --- Remap table ------------------------------------------------------------
+//
+// Maps a character code (0x00-0x7F) to the absolute VRAM tile slot that
+// holds the current font's glyph for that character. 0xFF means the
+// entry is unset. Written by font_load and font_load_string, read by
+// draw_text and putchar.
+
+_tile_remap: [u8; 128];
+
+// --- Remap table initialization ---------------------------------------------
+
+inline fn font_init_remap() {
+    // Fill _tile_remap with 0xFF (unset).
+    ld_hl #_tile_remap
+    ld #128
+    ld_addr (_ft_outer)
+    do {
+        ld #0xFF
+        ldi
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+}
 
 // --- Game Boy runtime tile loader -------------------------------------------
 //
@@ -37,77 +80,71 @@ inline fn _font_load_tiles(first, count, data) {
     ld #0
     ldh (LCD::CONTROL)
     // HL = VRAM pattern table at 0x8000 + first*16.
-    // For simplicity, start at 0x8000 (first is always 0 for the
-    // first font load).
     ld_hl #0x8000
-    // DE = font data blob address. The data pointer comes in as
-    // lo!/hi! of the font.data field, stored in _font_current.
-    ld_a (_font_current + 0)
+    ld_a (first)
+    cp #0
+    if (zero) { jp 'flt_off_done' }
+    ld_addr (_ft_outer)
+    do {
+        ld #16
+        ld_addr (_ft_inner)
+        do {
+            inc_hl
+            ld_a (_ft_inner)
+            dec
+            ld_addr (_ft_inner)
+        } while (not zero)
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'flt_off_done:
+    // DE = font data blob address.
+    ld_de #data
+    // Skip the header (2 bytes) + encoding table. The flags byte
+    // lower 2 bits select the mode: bit 1 set = ENCODE_NONE (skip
+    // 2); bit 0 set = ENCODE_128 (skip 130); else ENCODE_256 (skip
+    // 258). No if-else: the compiler emits a 0x4C JMP on SM83.
+    ld_a_de
+    and #2
+    if (zero) { jp 'flt_not_none' }
+    inc_de
+    inc_de
+    jp 'flt_skip_done'
+    'flt_not_none:
+    ld_a_de
+    and #1
+    if (zero) { jp 'flt_enc256' }
+    // ENCODE_128: skip 128 table bytes.
+    ld #128
+    ld_addr (_ft_outer)
+    do {
+        inc_de
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    inc_de
+    inc_de
+    jp 'flt_skip_done'
+    'flt_enc256:
+    // ENCODE_256: skip 256 table bytes (counter 0 wraps to 255).
     ld #0
     ld_addr (_ft_outer)
-    // Add enc_table offset to DE to skip the header + encoding table.
-    // The encoding mode is in flags & 3. For ENCODE_256 (mode 0):
-    //   offset = 2 + 256 = 258. For ENCODE_128 (mode 1): 2 + 128 = 130.
-    //   For ENCODE_NONE (mode 2): 2 + 0 = 2.
-    // We read the flags byte from the blob to determine the offset.
-    // DE = font.data (from _font_current + 0/1).
-    ld_a (_font_current + 1)
-    ld_de #0
-    // Reconstruct DE from _font_current pointer fields:
-    // D = _font_current + 1 (hi), E = _font_current + 0 (lo).
-    // We can't do ld d, a / ld e, a (not in the subset).
-    // Instead, use ld_de #lo!(font.data) directly — the compiler
-    // emits a relocation now that array-const pointer fields don't
-    // resolve to their length.
-    ld_de #data
-    // Skip the header (2 bytes) + encoding table.
-    // Read flags byte to determine encoding table size.
-    ld_a_de
-    // A = flags. encoding = flags & 3. Bit 0 set = 128-byte table.
-    // Bit 1 set = no table. Both clear = 256-byte table.
-    // For the NES font: flags=0x04, enc=0 (256-byte table), skip=258.
-    // For the IBM GB font: flags=0x05, enc=1 (128-byte table), skip=130.
-    // We check bit 1: if set, skip=2. Else check bit 0: if set, skip=130.
-    // Else skip=258.
-    and #2
-    if (not zero) {
-        // ENCODE_NONE: skip = 2
+    do {
         inc_de
-        inc_de
-    } else {
-        // Check bit 0 for ENCODE_128 vs ENCODE_256
-        ld_a_de
-        and #1
-        if (not zero) {
-            // ENCODE_128: skip = 130 (2 + 128)
-            ld #128
-            ld_addr (_ft_outer)
-            do {
-                inc_de
-                ld_a (_ft_outer)
-                dec
-                ld_addr (_ft_outer)
-            } while (not zero)
-            inc_de
-            inc_de
-        } else {
-            // ENCODE_256: skip = 258 (2 + 256)
-            ld #0
-            ld_addr (_ft_outer)
-            do {
-                inc_de
-                ld_a (_ft_outer)
-                dec
-                ld_addr (_ft_outer)
-            } while (not zero)
-            inc_de
-            inc_de
-        }
-    }
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    inc_de
+    inc_de
+    'flt_skip_done:
     // Now DE points to the first 1bpp tile. Copy count tiles,
-    // expanding each row from 1bpp to 2bpp.
-    // Outer loop: count tiles.
-    ld_a (count)
+    // expanding each row from 1bpp to 2bpp. ld #count loads the
+    // const tile count as an immediate (ld_a (count) would load
+    // from the memory address held in count).
+    ld #count
     ld_addr (_ft_outer)
     do {
         // Inner loop: 8 rows per tile.
@@ -145,29 +182,67 @@ inline fn gotoxy(x, y) {
 // --- Character output -------------------------------------------------------
 //
 // putchar writes the character in _putchar_char to the tile map at the
-// cursor position. The tile index is _putchar_char + first_tile.
+// cursor position. The tile index comes from _tile_remap[_putchar_char]
+// when that entry is set; otherwise it falls back to
+// _putchar_char + first_tile.
 //
 // The tile map address is TILE_MAP_0_ADDRESS + _cursor_y * 32 + _cursor_x.
+// The remap lookup uses HL, so it runs before the map address is set up.
 
 inline fn putchar(c) {
     assign(_putchar_char, c)
 
+    // Tile index: _tile_remap[char] when the entry is set, else the
+    // legacy char + first_tile. The result lands in _putchar_char.
+    ld_a (_putchar_char)
+    cp #128
+    if (carry) { jp 'pc_remap' }
+    jp 'pc_legacy'
+    'pc_remap:
+    cp #0
+    if (zero) { jp 'pc_remap_done' }
+    ld_addr (_ft_outer)
+    ld_hl #_tile_remap
+    do {
+        inc_hl
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'pc_remap_done:
+    ld_a_hl
+    cp #0xFF
+    if (zero) { jp 'pc_legacy' }
+    ld_addr (_putchar_char)
+    jp 'pc_tile_done'
+    'pc_legacy:
+    // Legacy: _putchar_char = _putchar_char + first_tile.
+    ld_a (_font_current + 2)
+    cp #0
+    if (zero) { jp 'pc_tile_done' }
+    ld_a (_font_current + 2)
+    ld_addr (_ft_outer)
+    do {
+        ld_a (_putchar_char)
+        add #1
+        ld_addr (_putchar_char)
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'pc_tile_done:
+
     // Set HL = 0x9800 + _cursor_y * 32 + _cursor_x.
     // Start at 0x9800, add _cursor_y * 32, then add _cursor_x.
     ld_hl #0x9800
-    // Add _cursor_y * 32: loop _cursor_y times, adding 32 to HL each time.
+    // Add _cursor_y * 32 (skipped when _cursor_y is 0).
     ld_a (_cursor_y)
+    cp #0
+    if (zero) { jp 'pc_y_done' }
     ld_addr (_ft_outer)
     do {
-        if (zero) {
-            jp 'pc_y_done
-        }
-        // HL += 32. We can't do add hl, #32 directly, so use:
-        // A = L, A += 32, L = A... but we can't ld l, a.
-        // Instead, use ld_a_hl to read (HL), but that reads memory not HL.
-        // We need to add 32 to HL. Use ld_hl with a computed address?
-        // No — ld_hl only takes an immediate.
-        // Alternative: use 32 iterations of inc_hl.
+        // HL += 32 as 32 iterations of inc_hl (no add hl, #32 in the
+        // working subset).
         ld #32
         ld_addr (_ft_inner)
         do {
@@ -182,13 +257,12 @@ inline fn putchar(c) {
     } while (not zero)
     'pc_y_done:
 
-    // Add _cursor_x to HL: loop _cursor_x times, inc_hl.
+    // Add _cursor_x to HL (skipped when _cursor_x is 0).
     ld_a (_cursor_x)
+    cp #0
+    if (zero) { jp 'pc_x_done' }
     ld_addr (_ft_outer)
     do {
-        if (zero) {
-            jp 'pc_x_done
-        }
         inc_hl
         ld_a (_ft_outer)
         dec
@@ -196,22 +270,8 @@ inline fn putchar(c) {
     } while (not zero)
     'pc_x_done:
 
-    // Write the tile index: _putchar_char + first_tile.
-    // first_tile is in _font_current + 2.
-    ld_a (_font_current + 2)
-    ld_addr (_ft_outer)
-    ld_a (_putchar_char)
-    do {
-        if (zero) {
-            jp 'pc_add_done
-        }
-        add #1
-        ld_a (_ft_outer)
-        dec
-        ld_addr (_ft_outer)
-    } while (not zero)
-    'pc_add_done:
     // A = tile index. Write to (HL) via ldi.
+    ld_a (_putchar_char)
     ldi
 
     // Advance the cursor X. Wrap at 32.
@@ -229,21 +289,82 @@ inline fn putchar(c) {
 
 // --- String output ----------------------------------------------------------
 
+// draw_text may be called several times. The per-character loop lives
+// in the non-inline _dt_loop, which the compiler places exactly once
+// (labels in it are safe). An inline labeled loop would not be safe:
+// inline fn labels are section-global symbols, so two inlined copies
+// of a labeled loop share the label and jump into each other. A
+// do-while would also not work: its back-jump is a relative JR with a
+// 128-byte reach, and this loop body is longer.
+//
+// State across the _dt_loop call: _cursor_x, _cursor_y,
+// _font_current, _draw_text_len (RAM); DE (string pointer, register).
+//
+// Precondition: len >= 1.
+
 inline fn draw_text(x, y, str, len) {
     gotoxy(x, y)
     // String length counter.
     assign(_draw_text_len, len)
-    // DE = pointer to the start of the string. Loaded once before the
-    // loop; advanced by inc_de at the end of each iteration. (ld_de #str
-    // emits a relocation to the array const's ROM address.)
+    // DE = pointer to the start of the string. Advanced by inc_de at
+    // the end of each iteration. (ld_de #str emits a relocation to
+    // the array const's ROM address.)
     ld_de #str
+    // Process every character (single-copy loop, returns via RET).
+    _dt_loop()
+}
 
+// Per-character loop for draw_text. Single copy in ROM (non-inline
+// fn), so its labels cannot collide. Reads the state set up by
+// draw_text (see its comment). Ends with an implicit RET.
+fn _dt_loop() {
     'dt_loop:
     // Read the current character at (DE).
     ld_a_de
     ld_addr (_putchar_char)
 
-    // Inline putchar body: compute tile map address and write.
+    // Tile index: _tile_remap[char] when the entry is set, else the
+    // legacy char + first_tile. The result lands in _putchar_char.
+    // Runs first: the remap lookup uses HL.
+    ld_a (_putchar_char)
+    cp #128
+    if (carry) { jp 'dt_remap' }
+    jp 'dt_legacy'
+    'dt_remap:
+    cp #0
+    if (zero) { jp 'dt_remap_done' }
+    ld_addr (_ft_outer)
+    ld_hl #_tile_remap
+    do {
+        inc_hl
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'dt_remap_done:
+    ld_a_hl
+    cp #0xFF
+    if (zero) { jp 'dt_legacy' }
+    ld_addr (_putchar_char)
+    jp 'dt_tile_done'
+    'dt_legacy:
+    // Legacy: _putchar_char = _putchar_char + first_tile.
+    ld_a (_font_current + 2)
+    cp #0
+    if (zero) { jp 'dt_tile_done' }
+    ld_a (_font_current + 2)
+    ld_addr (_ft_outer)
+    do {
+        ld_a (_putchar_char)
+        add #1
+        ld_addr (_putchar_char)
+        ld_a (_ft_outer)
+        dec
+        ld_addr (_ft_outer)
+    } while (not zero)
+    'dt_tile_done:
+
+    // Compute tile map address and write.
     ld_hl #0x9800
     // HL += _cursor_y * 32 (skipped when _cursor_y is 0).
     ld_a (_cursor_y)
@@ -276,23 +397,7 @@ inline fn draw_text(x, y, str, len) {
         ld_addr (_ft_outer)
     } while (not zero)
     'dt_x_done:
-    // tile index = _putchar_char + first_tile. Add first_tile to the
-    // char, but only when first_tile is nonzero (a do-while started at
-    // zero would wrap the counter and over-add).
-    ld_a (_font_current + 2)
-    cp #0
-    if (zero) { jp 'dt_tile' }
-    ld_a (_font_current + 2)
-    ld_addr (_ft_outer)
-    do {
-        ld_a (_putchar_char)
-        add #1
-        ld_addr (_putchar_char)
-        ld_a (_ft_outer)
-        dec
-        ld_addr (_ft_outer)
-    } while (not zero)
-    'dt_tile:
+    // _putchar_char holds the tile index. Write it to (HL) via ldi.
     ld_a (_putchar_char)
     ldi
     // Advance the cursor X; wrap to the next row at column 32.
@@ -309,11 +414,11 @@ inline fn draw_text(x, y, str, len) {
 
     // Advance DE (string pointer).
     inc_de
-    // Decrement length counter.
+    // Decrement length counter; loop while it is not zero.
     ld_a (_draw_text_len)
     dec
     ld_addr (_draw_text_len)
-    if (not zero) { jp 'dt_loop }
+    if (not zero) { jp 'dt_loop' }
     'dt_done:
     nop
 }
@@ -362,13 +467,15 @@ inline fn font_load(font) {
     // Load tiles to VRAM with 1bpp->2bpp expansion.
     _font_load_tiles(font_first_free_tile, font.tile_count, font.data)
     // Advance first_free_tile by tile_count (a loop, since there is no
-    // adc): increment _ft_outer (= first_free_tile) tile_count times.
+    // adc). ld #font.tile_count loads the const count as an immediate
+    // (ld_a (font.tile_count) would load from memory address count).
     ld_a (font_first_free_tile)
     ld_addr (_ft_outer)
-    ld_a (font.tile_count)
+    ld #font.tile_count
     ld_addr (_ft_inner)
+    cp #0
+    if (zero) { jp 'gb_ft_done' }
     do {
-        if (zero) { jp 'gb_ft_done }
         ld_a (_ft_outer)
         add #1
         ld_addr (_ft_outer)
@@ -379,6 +486,336 @@ inline fn font_load(font) {
     'gb_ft_done:
     ld_a (_ft_outer)
     ld_addr (font_first_free_tile)
+    // Fill _tile_remap[c] = first_tile + enc[c] for c = 0..127 so
+    // draw_text uses the encoding table. ENCODE_NONE: enc[c] = c.
+    // Otherwise the table starts at font.data + 2 (the same offset
+    // for 128 and 256 encodings).
+    ld_de #font.data
+    ld_a_de
+    and #2
+    ld_addr (_putchar_char)
+    // DE = encoding table start (font.data + 2). Unused for
+    // ENCODE_NONE.
+    inc_de
+    inc_de
+    ld #0
+    ld_addr (_ft_inner)
+    'fl_c:
+    ld_a (_putchar_char)
+    cp #0
+    if (zero) { jp 'fl_c_table' }
+    // ENCODE_NONE: tile = c.
+    ld_a (_ft_inner)
+    ld_addr (_ft_outer)
+    jp 'fl_sum'
+    'fl_c_table:
+    // tile = enc[c].
+    ld_a_de
+    inc_de
+    ld_addr (_ft_outer)
+    'fl_sum:
+    // _ft_outer += first_tile. The loop counters use
+    // _draw_text_ptr_lo so the mode byte in _putchar_char survives.
+    ld_a (_font_current + 2)
+    cp #0
+    if (zero) { jp 'fl_hl' }
+    ld_addr (_draw_text_ptr_lo)
+    do {
+        ld_a (_ft_outer)
+        add #1
+        ld_addr (_ft_outer)
+        ld_a (_draw_text_ptr_lo)
+        dec
+        ld_addr (_draw_text_ptr_lo)
+    } while (not zero)
+    'fl_hl:
+    // HL = _tile_remap + c.
+    ld_hl #_tile_remap
+    ld_a (_ft_inner)
+    cp #0
+    if (zero) { jp 'fl_write' }
+    ld_addr (_draw_text_ptr_lo)
+    do {
+        inc_hl
+        ld_a (_draw_text_ptr_lo)
+        dec
+        ld_addr (_draw_text_ptr_lo)
+    } while (not zero)
+    'fl_write:
+    // _tile_remap[c] = first_tile + tile.
+    ld_a (_ft_outer)
+    ldi
+    // c++ (128 entries).
+    ld_a (_ft_inner)
+    inc
+    cp #128
+    if (zero) { jp 'fl_done' }
+    ld_addr (_ft_inner)
+    jp 'fl_c'
+    'fl_done:
+    // A label must be followed by a statement; a bare label at the
+    // end of a function body does not parse.
+    nop
+}
+
+// --- Subset font loading ------------------------------------------------------
+//
+// font_load_string loads only the glyphs used by str into VRAM, one
+// tile slot per character (a duplicate character gets a second copy,
+// so the slot count equals the string length). Each glyph lands in a
+// fresh slot starting at font_first_free_tile + 1, and
+// _tile_remap[char] records the slot. Slot 0 stays blank: cls()
+// fills the tile map with tile 0. The data pointer and base tile
+// are stored in _font_current, so draw_text can be called right
+// after.
+//
+// Only character codes below 0x80 are supported (the remap table is
+// 128 entries). Call font_init_remap before the first load.
+//
+// font_load_string may be called several times. The per-character
+// loop lives in the non-inline _fls_loop, which the compiler places
+// exactly once (labels in it are safe). An inline labeled loop would
+// not be safe: inline fn labels are section-global symbols, so two
+// inlined copies of a labeled loop share the label and jump into each
+// other. A do-while would also not work: its back-jump is a relative
+// JR with a 128-byte reach, and this loop body is longer.
+//
+// State across the _fls_loop call: _font_current, _fls_slot,
+// _draw_text_len (RAM); DE (string pointer, register).
+//
+// Precondition: len >= 1.
+
+inline fn font_load_string(font, str, len) {
+    // Slot 0 of the pattern table stays blank: cls() fills the tile
+    // map with tile 0. Start glyph slots at font_first_free_tile + 1
+    // so the first loaded glyph never lands in slot 0.
+    ld_a (font_first_free_tile)
+    inc
+    ld_addr (_font_current + 2)
+    // Store the font data pointer and base tile in _font_current.
+    ld #lo!(font.data)
+    ld_addr (_font_current + 0)
+    ld #hi!(font.data)
+    ld_addr (_font_current + 1)
+    // Slot counter (0-based within this font).
+    ld #0
+    ld_addr (_fls_slot)
+    // String cursor and length counter.
+    ld_de #str
+    ld #len
+    ld_addr (_draw_text_len)
+    // Turn the LCD off before writing VRAM. The caller turns the LCD
+    // back on after all text is drawn (same convention as font_load).
+    ld #0
+    ldh (LCD::CONTROL)
+    // Load every character's glyph (single-copy loop, returns via
+    // RET).
+    _fls_loop()
+    // Advance font_first_free_tile by the slots used, plus the
+    // reserved blank slot 0 (the base was set to
+    // font_first_free_tile + 1).
+    ld_a (_fls_slot)
+    cp #0
+    if (not zero) {
+        ld_addr (_ft_inner)
+        ld_a (font_first_free_tile)
+        ld_addr (_ft_outer)
+        do {
+            ld_a (_ft_outer)
+            add #1
+            ld_addr (_ft_outer)
+            ld_a (_ft_inner)
+            dec
+            ld_addr (_ft_inner)
+        } while (not zero)
+        ld_a (_ft_outer)
+        add #1
+        ld_addr (font_first_free_tile)
+    }
+}
+
+// Per-character loop for font_load_string. Single copy in ROM
+// (non-inline fn), so its labels cannot collide. Reads the state set
+// up by font_load_string (see its comment). Ends with an implicit RET.
+fn _fls_loop() {
+    'fls_char:
+    // A = char.
+    ld_a_de
+    inc_de
+    ld_addr (_putchar_char)
+    // BC = font.data, from _font_current (set by font_load_string;
+    // the font parameter is not visible here — this is a single-copy
+    // non-inline fn, not an inline expansion). BC is big-endian: B
+    // takes the high byte, C the low byte.
+    ld_a (_font_current + 1)
+    ld_ba
+    ld_a (_font_current + 0)
+    ld_ca
+    // Read the flags byte before advancing BC.
+    ld_a_bc
+    and #2
+    ld_addr (_draw_text_ptr_hi)
+    ld_a_bc
+    and #1
+    ld_addr (_ft_inner)
+    inc_bc
+    inc_bc
+    ld_a (_draw_text_ptr_hi)
+    cp #0
+    if (zero) { jp 'fls_tile_table' }
+    // ENCODE_NONE: tile = char.
+    ld_a (_putchar_char)
+    ld_addr (_ft_outer)
+    jp 'fls_src'
+    'fls_tile_table:
+    // BC += char.
+    ld_a (_putchar_char)
+    cp #0
+    if (zero) { jp 'fls_tile' }
+    ld_addr (_draw_text_ptr_lo)
+    do {
+        inc_bc
+        ld_a (_draw_text_ptr_lo)
+        dec
+        ld_addr (_draw_text_ptr_lo)
+    } while (not zero)
+    'fls_tile:
+    // _ft_outer = tile.
+    ld_a_bc
+    ld_addr (_ft_outer)
+    'fls_src:
+    // BC = tile data start + tile*8. The tile data starts after the
+    // encoding table (256, 128, or 0 bytes). BC is big-endian: B
+    // takes the high byte, C the low byte.
+    ld_a (_font_current + 1)
+    ld_ba
+    ld_a (_font_current + 0)
+    ld_ca
+    inc_bc
+    inc_bc
+    ld_a (_draw_text_ptr_hi)
+    cp #0
+    if (zero) { jp 'fls_bit0' }
+    jp 'fls_ts_done'
+    'fls_bit0:
+    ld_a (_ft_inner)
+    cp #0
+    if (zero) { jp 'fls_ts256' }
+    // ENCODE_128: skip 128 table bytes.
+    ld #128
+    ld_addr (_draw_text_ptr_lo)
+    do {
+        inc_bc
+        ld_a (_draw_text_ptr_lo)
+        dec
+        ld_addr (_draw_text_ptr_lo)
+    } while (not zero)
+    jp 'fls_ts_done'
+    'fls_ts256:
+    // ENCODE_256: skip 256 table bytes (counter 0 wraps to 255).
+    ld #0
+    ld_addr (_draw_text_ptr_lo)
+    do {
+        inc_bc
+        ld_a (_draw_text_ptr_lo)
+        dec
+        ld_addr (_draw_text_ptr_lo)
+    } while (not zero)
+    'fls_ts_done:
+    // BC += tile*8.
+    ld_a (_ft_outer)
+    cp #0
+    if (zero) { jp 'fls_copy' }
+    ld_addr (_ft_inner)
+    do {
+        ld #8
+        ld_addr (_draw_text_ptr_hi)
+        do {
+            inc_bc
+            ld_a (_draw_text_ptr_hi)
+            dec
+            ld_addr (_draw_text_ptr_hi)
+        } while (not zero)
+        ld_a (_ft_inner)
+        dec
+        ld_addr (_ft_inner)
+    } while (not zero)
+    'fls_copy:
+    // HL = 0x8000 + (base + slot) * 16.
+    ld_a (_font_current + 2)
+    ld_addr (_ft_outer)
+    ld_a (_fls_slot)
+    cp #0
+    if (zero) { jp 'fls_hl' }
+    ld_addr (_ft_inner)
+    do {
+        ld_a (_ft_outer)
+        add #1
+        ld_addr (_ft_outer)
+        ld_a (_ft_inner)
+        dec
+        ld_addr (_ft_inner)
+    } while (not zero)
+    'fls_hl:
+    ld_hl #0x8000
+    ld_a (_ft_outer)
+    cp #0
+    if (zero) { jp 'fls_rows' }
+    ld_addr (_ft_inner)
+    do {
+        ld #16
+        ld_addr (_draw_text_ptr_hi)
+        do {
+            inc_hl
+            ld_a (_draw_text_ptr_hi)
+            dec
+            ld_addr (_draw_text_ptr_hi)
+        } while (not zero)
+        ld_a (_ft_inner)
+        dec
+        ld_addr (_ft_inner)
+    } while (not zero)
+    'fls_rows:
+    // Copy 8 one-bit rows to VRAM, expanded to 2bpp (plane0 = plane1
+    // = row, ink -> colour 3, paper -> colour 0). BC is the 1bpp
+    // source and advances one byte per row.
+    ld #8
+    ld_addr (_ft_inner)
+    do {
+        ld_a_bc
+        inc_bc
+        ldi
+        ldi
+        ld_a (_ft_inner)
+        dec
+        ld_addr (_ft_inner)
+    } while (not zero)
+    // _tile_remap[char] = base + slot.
+    ld_hl #_tile_remap
+    ld_a (_putchar_char)
+    cp #0
+    if (zero) { jp 'fls_rm' }
+    ld_addr (_ft_inner)
+    do {
+        inc_hl
+        ld_a (_ft_inner)
+        dec
+        ld_addr (_ft_inner)
+    } while (not zero)
+    'fls_rm:
+    ld_a (_ft_outer)
+    ldi
+    // slot++.
+    ld_a (_fls_slot)
+    inc
+    ld_addr (_fls_slot)
+    // len--
+    ld_a (_draw_text_len)
+    dec
+    ld_addr (_draw_text_len)
+    if (not zero) { jp 'fls_char' }
+    'fls_done:
+    nop
 }
 
 inline fn font_register(font) {
