@@ -5,9 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0]
+## [0.9.0]
 
 ### Added
+- The `w65c02` CPU module (`src/cpu/w65c02.op`): status flags, register,
+  condition, opcode, addressing-mode, and interrupt enums for the WDC
+  W65C02S, with the 8 MHz `CLOCK_HZ` constant. The opcode enum covers
+  the 6502 base, the 65SC02 additions, the Rockwell
+  `RMB`/`SMB`/`BBR`/`BBS` instructions, and `WAI`/`STP`.
+- The Commander X16 machine module (`src/machine/x16/`): VERA, composer,
+  layer, audio, YM2151, VIA, banking, and emulator-debug register
+  constants and selector enums in `constants.op`; sprite, PSG, and
+  controller types in `types.op`; and inline macros for VERA addressing,
+  bank switching, interrupts, video on/off, VSYNC wait, PSG output, and
+  `system_initialize` in `macros.op`.
+- The `w65c02` and `x16` modules in the cfg registries (`src/cpu.op`,
+  `src/machine.op`), and the `machine/x16` module root file is `mod.op`
+  for `mod` resolution.
+- The `tests/w65c02-commander-x16.op` triplet test and the `w65c02`
+  case in `tests/cpu-alias.op`.
 - NES font subset loading (`src/font/nes.op`):
   - `font_load_string(font, str, len)` loads only the glyphs used by a
     string into CHR-RAM, one tile slot per character, starting at
