@@ -1,0 +1,78 @@
+//! Commander X16 Types
+//!
+//! Enums for VERA interrupt sources, PSG waveforms, sprite attributes,
+//! and gamepad button masks for the Commander X16.
+
+// --- VERA interrupt sources -------------------------------------------------
+//
+// Bit flags for VERA::IEN (enable) and VERA::ISR (status). Writing a 1
+// to an ISR bit clears it. AFLOW clears only after refilling the audio
+// FIFO past one quarter.
+
+enum VERA_INTERRUPT {
+    VSYNC   = 0x01,
+    LINE    = 0x02,
+    SPRCOL  = 0x04,
+    AFLOW   = 0x08,
+}
+
+// --- PSG waveforms ----------------------------------------------------------
+//
+// The waveform field occupies the top two bits of the fourth PSG
+// register byte of each voice.
+
+enum PSG_WAVE {
+    PULSE    = 0,
+    SAWTOOTH = 1,
+    TRIANGLE = 2,
+    NOISE    = 3,
+}
+
+// --- sprite z-depth ---------------------------------------------------------
+//
+// Z-depth 0 disables the sprite. Higher depths render in front.
+
+enum SPRITE_DEPTH {
+    DISABLED    = 0,
+    BEHIND_L0   = 1,
+    BETWEEN_L01 = 2,
+    FRONT       = 3,
+}
+
+// --- sprite size ------------------------------------------------------------
+//
+// Width and height share one encoding.
+
+enum SPRITE_SIZE {
+    X8  = 0,
+    X16 = 1,
+    X32 = 2,
+    X64 = 3,
+}
+
+// --- gamepad buttons --------------------------------------------------------
+//
+// The SNES-style gamepads shift their button state out through the VIA
+// ports. These are the bit positions in the shifted byte.
+
+enum BUTTON {
+    B      = 0x01,
+    Y      = 0x02,
+    SELECT = 0x04,
+    START  = 0x08,
+    UP     = 0x10,
+    DOWN   = 0x20,
+    LEFT   = 0x40,
+    RIGHT  = 0x80,
+    A      = 0x0100,
+    X      = 0x0200,
+    L      = 0x0400,
+    R      = 0x0800,
+}
+
+// Re-export the enum variants.
+pub use VERA_INTERRUPT::*;
+pub use PSG_WAVE::*;
+pub use SPRITE_DEPTH::*;
+pub use SPRITE_SIZE::*;
+pub use BUTTON::*;

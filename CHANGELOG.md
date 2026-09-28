@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0]
+
+### Added
+- NES font subset loading (`src/font/nes.op`):
+  - `font_load_string(font, str, len)` loads only the glyphs used by a
+    string into CHR-RAM, one tile slot per character, starting at
+    `font_first_free_tile + 1`. Tile slot 0 stays blank so `cls()`
+    renders an empty background. It records each character's slot in
+    the new remap table and advances `font_first_free_tile`.
+  - `font_init_remap()` fills the remap table with 0xFF (unset). Call
+    it after `font_init`.
+  - `_tile_remap: [u8; 128]` maps character codes 0x00-0x7F to the
+    absolute CHR tile slot holding the current font's glyph.
+- The per-character loops of `draw_text` and `font_load_string` moved
+  into single-copy non-inline fns (`_dt_loop`, `_fls_loop`). Inline fn
+  labels are section-global, so two inlined copies of a labeled loop
+  collide. This makes both functions safe to call several times.
+
+### Changed
+- `draw_text` and `putchar` now resolve the tile index through
+  `_tile_remap` when the entry is set and the char is below 0x80.
+  Unset entries (0xFF) and char codes 0x80 and above keep the legacy
+  `char + first_tile` behaviour.
+- `font_load` now fills `_tile_remap` with `first + enc[c]` for
+  c = 0..127 after loading, so full loads of non-identity fonts draw
+  correctly.
+- `font_load` reserves CHR tile slot 0: glyphs start at
+  `font_first_free_tile + 1` and the free-tile advance adds the
+  reserved slot.
+
 ## [0.7.0]
 
 ### Added

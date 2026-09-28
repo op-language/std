@@ -3,6 +3,19 @@
 //! Text display functions for the NES. Writes tile indices to the
 //! nametable via the PPU. The cursor position is tracked in
 //! `_cursor_x` and `_cursor_y`.
+//!
+//! Long loops live in non-inline fns (single copy in PRG, e.g.
+//! _dt_loop, _fls_loop): inline fn labels are section-global and
+//! collide across inlined copies. The compiler places a non-inline
+//! fn body exactly once and calls reach it through JSR.
+//!
+//! compiler constraints (opc 0.11.0):
+//!
+//! - `lda (expr)` on a const expression loads from memory address
+//!   `expr`, not the value. Use `lda #expr` to load a const value.
+//! - A loop's `if` guard must be preceded by an instruction that sets
+//!   the relevant flag with the counter value (cmp #0, dex, dey, or
+//!   the like); stale flags are not reliable.
 
 use super::types::*;
 use super::ram::*;
@@ -13,8 +26,44 @@ use std::machine::*;
 _putchar_char: u8;
 _draw_text_ptr: pointer;
 _draw_text_len: u8;
+// Slot counter for font_load_string. Dedicated: the other scratch
+// bytes are reused as counters inside the per-character loop.
+_fls_slot: u8;
+// Scratch byte for the glyph expander: the row loop counter.
+_fls_row: u8;
+// Scratch pointer for CHR-RAM glyph data reads inside the loop fns.
+_fls_data: pointer;
+// Scratch byte for the remap walk counter.
+_dt_idx: u8;
+// Scratch byte for the remap entry value.
+_dt_val: u8;
 
-// --- NES runtime tile loader ------------------------------------------------
+// --- Remap table ------------------------------------------------------------
+//
+// Maps a character code (0x00-0x7F) to the absolute CHR tile slot
+// that holds the current font's glyph for that character. 0xFF means
+// the entry is unset. Written by font_load and font_load_string, read
+// by draw_text and putchar.
+
+_tile_remap: [u8; 128];
+
+// --- Remap table initialization ----------------------------------------------
+
+inline fn font_init_remap() {
+    // Fill _tile_remap with 0xFF through a y-indexed store loop.
+    // _mem_dest lo and hi hold the table address.
+    lda #lo!(_tile_remap)
+    sta _mem_dest + 0
+    lda #hi!(_tile_remap)
+    sta _mem_dest + 1
+    ldy #0
+    'rm_loop:
+    lda #0xFF
+    sta (_mem_dest), y
+    iny
+    cpy #128
+    if (not zero) { jmp 'rm_loop }
+}
 
 inline fn _font_load_tiles(first, count, data) {
     lda PPU::STATUS
@@ -53,6 +102,23 @@ inline fn putchar(c) {
     // Store the character code.
     assign(_putchar_char, c)
 
+    // Tile index: _tile_remap[char] when the entry is set and char is
+    // below 0x80; else the legacy char + first_tile.
+    lda _putchar_char
+    bmi 'pc_legacy
+    ldy _putchar_char
+    lda _tile_remap, y
+    cmp #0xFF
+    if (zero) { jmp 'pc_legacy }
+    sta _putchar_char
+    jmp 'pc_done
+    'pc_legacy:
+    lda _putchar_char
+    clc
+    adc _font_current + 2
+    sta _putchar_char
+    'pc_done:
+
     // Set the PPU address to the nametable at the cursor position.
     lda PPU::STATUS
     lda #hi!(NAME_TABLE_0_ADDRESS)
@@ -67,10 +133,8 @@ inline fn putchar(c) {
     adc _cursor_x
     sta PPU::ADDRESS
 
-    // Write the tile index: _putchar_char + first_tile.
+    // Write the tile index.
     lda _putchar_char
-    clc
-    adc _font_current + 2
     sta PPU::IO
 
     // Advance the cursor X. Wrap at 32.
@@ -85,6 +149,18 @@ inline fn putchar(c) {
 
 // --- String output ----------------------------------------------------------
 
+// draw_text may be called several times. The per-character loop lives
+// in the non-inline _dt_loop, which the compiler places exactly once
+// (labels in it are safe). An inline labeled loop would not be safe:
+// inline fn labels are section-global symbols, so two inlined copies
+// of a labeled loop share the label and jump into each other.
+//
+// State across the _dt_loop call: _cursor_x, _cursor_y,
+// _font_current, _draw_text_len (RAM); _draw_text_ptr (string
+// pointer, zero-page pair).
+//
+// Precondition: len >= 1.
+
 inline fn draw_text(x, y, str, len) {
     gotoxy(x, y)
     lda #lo!(str)
@@ -92,13 +168,37 @@ inline fn draw_text(x, y, str, len) {
     lda #hi!(str)
     sta _draw_text_ptr + 1
     assign(_draw_text_len, len)
+    // Process every character (single-copy loop, returns via RTS).
+    _dt_loop()
+}
 
+// Per-character loop for draw_text. Single copy in PRG (non-inline
+// fn), so its labels cannot collide. Reads the state set up by
+// draw_text (see its comment). Ends with an implicit RTS.
+fn _dt_loop() {
+    'dt_char:
+    // Read the current character at (_draw_text_ptr), y with y = 0.
     ldy #0
-    'draw_text_loop:
     lda (_draw_text_ptr), y
     sta _putchar_char
 
-    // Inline putchar body:
+    // Tile index: _tile_remap[char] when the entry is set and char is
+    // below 0x80; else the legacy char + first_tile.
+    lda _putchar_char
+    bmi 'dt_legacy
+    tay
+    lda _tile_remap, y
+    cmp #0xFF
+    if (zero) { jmp 'dt_legacy }
+    jmp 'dt_store
+    'dt_legacy:
+    lda _putchar_char
+    clc
+    adc _font_current + 2
+    'dt_store:
+    sta _putchar_char
+
+    // Set the PPU address to the nametable at the cursor position.
     lda PPU::STATUS
     lda #hi!(NAME_TABLE_0_ADDRESS)
     sta PPU::ADDRESS
@@ -111,10 +211,12 @@ inline fn draw_text(x, y, str, len) {
     clc
     adc _cursor_x
     sta PPU::ADDRESS
+
+    // Write the tile index.
     lda _putchar_char
-    clc
-    adc _font_current + 2
     sta PPU::IO
+
+    // Advance the cursor X. Wrap at 32.
     inc _cursor_x
     lda _cursor_x
     cmp #32
@@ -123,9 +225,18 @@ inline fn draw_text(x, y, str, len) {
         inc _cursor_y
     }
 
-    iny
+    // Advance the string pointer (16-bit increment).
+    inc _draw_text_ptr + 0
+    lda _draw_text_ptr + 0
+    if (not zero) { jmp 'dt_lencheck }
+    inc _draw_text_ptr + 1
+    'dt_lencheck:
+
+    // Decrement the length counter. Loop while it is not zero.
     dec _draw_text_len
-    if (not zero) { jmp 'draw_text_loop }
+    lda _draw_text_len
+    cmp #0
+    if (not zero) { jmp 'dt_char }
 }
 
 // --- Clear screen -----------------------------------------------------------
@@ -153,17 +264,38 @@ inline fn cls() {
 
 // --- Font loading (NES / 6502) ----------------------------------------------
 
+// font_load loads every tile of the font and fills _tile_remap with
+// first + enc[c] for c = 0..127, so draw_text renders non-identity
+// fonts correctly. CHR tile slot 0 is reserved and left blank (cls()
+// fills the name table with tile 0).
+
 inline fn font_load(font) {
     lda #lo!(font.data)
     sta _font_current + 0
     lda #hi!(font.data)
     sta _font_current + 1
-    assign(_font_current + 2, font_first_free_tile)
-    _font_load_tiles(font_first_free_tile, font.tile_count, font.data)
+    // first = font_first_free_tile + 1 (slot 0 stays blank).
+    lda font_first_free_tile
+    clc
+    adc #1
+    sta _font_current + 2
+    sta _dt_idx
+    _font_load_tiles(_dt_idx, font.tile_count, font.data)
+    // Advance font_first_free_tile by tile_count, plus the reserved slot.
     lda font_first_free_tile
     clc
     adc font.tile_count
+    adc #1
     sta font_first_free_tile
+    // Fill _tile_remap[c] = first + enc[c]. The table starts at
+    // font.data + 2 (the same offset for 128 and 256 encodings).
+    // ENCODE_NONE: enc[c] = c. _fl_c_loop reads font.data through
+    // _fls_data.
+    lda #lo!(font.data)
+    sta _fls_data + 0
+    lda #hi!(font.data)
+    sta _fls_data + 1
+    _fl_c_loop()
 }
 
 inline fn font_register(font) {
@@ -181,4 +313,287 @@ inline fn font_set(handle) {
     sta _font_current + 1
     lda handle + 2
     sta _font_current + 2
+}
+
+// --- Remap fill for font_load -----------------------------------------------
+
+// Fills _tile_remap[c] = first + enc[c] for c = 0..127 after a full
+// font_load. Reads the mode byte from _putchar_char (set by font_load,
+// before _dt clobbers it) and walks the encoding table in ROM through
+// _fls_data. Single copy in PRG (non-inline fn), so its labels cannot
+// collide. Registers: c lives in the zero-page _dt_idx, and the tile
+// sum lives in A. Ends with an implicit RTS.
+fn _fl_c_loop() {
+    'fl_c:
+    // ENCODE_NONE? The flags byte sits at (_fls_data) when _fls_data
+    // holds font.data. Reload it here: _fls_data = font.data.
+    lda _fls_data + 0
+    sta _mem_src + 0
+    lda _fls_data + 1
+    sta _mem_src + 1
+    ldy #0
+    lda (_mem_src), y
+    sta _putchar_char
+    and #1
+    // Branch on ENCODE_NONE: the flags bit 0 selects it.
+    if (zero) {
+        lda _putchar_char
+        and #2
+        if (not zero) {
+            // ENCODE_NONE: tile = c.
+            lda _dt_idx
+            sta _dt_val
+            jmp 'fl_write
+        }
+    }
+    // Has table: _fls_data = font.data + 2 + c, tile = (that).
+    lda _fls_data + 0
+    clc
+    adc #2
+    sta _mem_src + 0
+    lda _fls_data + 1
+    sta _mem_src + 1
+    ldy _dt_idx
+    lda (_mem_src), y
+    sta _dt_val
+    'fl_write:
+    // _tile_remap[c] = _dt_val + first.
+    lda _dt_val
+    clc
+    adc _font_current + 2
+    ldy _dt_idx
+    sta _tile_remap, y
+    // c++. Loop until c wraps to 0.
+    inc _dt_idx
+    lda _dt_idx
+    cmp #0
+    if (not zero) { jmp 'fl_c }
+}
+// --- Subset font loading ------------------------------------------------------
+//
+// font_load_string loads only the glyphs used by str into CHR-RAM,
+// one tile slot per character (a duplicate character gets a second
+// copy, so the slot count equals the string length). Each glyph lands
+// in a fresh slot starting at font_first_free_tile + 1, and
+// _tile_remap[char] records the slot. Tile slot 0 stays blank: cls()
+// fills the name table with tile 0. The data pointer and base tile
+// are stored in _font_current, so draw_text can be called right
+// after.
+//
+// Only character codes below 0x80 are supported (the remap table is
+// 128 entries). Call font_init_remap before the first load.
+//
+// font_load_string may be called several times. The per-character
+// loop lives in the non-inline _fls_loop, which the compiler places
+// exactly once (labels in it are safe).
+//
+// State across the _fls_loop call: _font_current, _fls_slot,
+// _draw_text_len, _fls_data (RAM). All are zero-page.
+//
+// Precondition: len >= 1.
+
+inline fn font_load_string(font, str, len) {
+    // Store the font data pointer and base tile in _font_current.
+    lda #lo!(font.data)
+    sta _font_current + 0
+    lda #hi!(font.data)
+    sta _font_current + 1
+    // first = font_first_free_tile + 1 (slot 0 stays blank).
+    lda font_first_free_tile
+    clc
+    adc #1
+    sta _font_current + 2
+    // Keep the font data pointer for the loop fn.
+    lda #lo!(font.data)
+    sta _fls_data + 0
+    lda #hi!(font.data)
+    sta _fls_data + 1
+    // Slot counter (0-based within this font).
+    lda #0
+    sta _fls_slot
+    // String pointer and length counter.
+    lda #lo!(str)
+    sta _draw_text_ptr + 0
+    lda #hi!(str)
+    sta _draw_text_ptr + 1
+    lda #len
+    sta _draw_text_len
+    // Load every character's glyph (single-copy loop, returns via
+    // RTS).
+    _fls_loop()
+    // Advance font_first_free_tile by the slots used, plus the
+    // reserved blank slot (the base was font_first_free_tile + 1).
+    lda _fls_slot
+    clc
+    adc font_first_free_tile
+    adc #1
+    sta font_first_free_tile
+}
+
+// Per-character loop for font_load_string. Single copy in PRG
+// (non-inline fn), so its labels cannot collide. Reads the state set
+// up by font_load_string (see its comment). Ends with an implicit
+// RTS.
+//
+// Scratch use inside the body:
+// - _fls_data    : font data pointer in ROM (2 bytes, zero page).
+// - _mem_src     : the walked ROM pointer (2 bytes, zero page).
+// - _putchar_char: the current character code.
+// - _dt_val      : the tile index within the font.
+// - _fls_row     : the row loop counter.
+// - Y            : the row index within the glyph (0-7).
+fn _fls_loop() {
+    'fls_char:
+    // A = char. The string pointer advances by one (16-bit).
+    ldy #0
+    lda (_draw_text_ptr), y
+    sta _putchar_char
+    inc _draw_text_ptr + 0
+    if (not zero) { jmp 'fls_mode }
+    inc _draw_text_ptr + 1
+    'fls_mode:
+    // Mode: the flags byte at (_fls_data). The logic matches
+    // gameboy.op: bit 1 set = ENCODE_NONE (tile = char). Bit 1 clear
+    // = a table exists: bit 0 set = 128 entries, bit 0 clear = 256.
+    ldy #0
+    lda (_fls_data), y
+    and #2
+    cmp #0
+    if (not zero) { jmp 'fls_none }
+    // Has table: tile = table[char]. The table starts at _fls_data+2.
+    lda _fls_data + 0
+    clc
+    adc #2
+    sta _mem_src + 0
+    lda #0
+    adc _fls_data + 1
+    sta _mem_src + 1
+    ldy _putchar_char
+    lda (_mem_src), y
+    sta _dt_val
+    jmp 'fls_src
+    'fls_none:
+    // ENCODE_NONE: tile = char.
+    lda _putchar_char
+    sta _dt_val
+    'fls_src:
+    // _mem_src = _fls_data + 2 + table_size. Table size: 0 (none),
+    // 128 (bit 0 set), 256 (bit 0 clear, table present).
+    lda _fls_data + 0
+    clc
+    adc #2
+    sta _mem_src + 0
+    lda _fls_data + 1
+    sta _mem_src + 1
+    ldy #0
+    lda (_fls_data), y
+    and #2
+    cmp #0
+    if (not zero) { jmp 'fls_skipdone }
+    // Has table: bit 0 selects 128 or 256.
+    lda (_fls_data), y
+    and #1
+    cmp #0
+    if (zero) { jmp 'fls_skip256 }
+    // ENCODE_128: _mem_src += 128.
+    lda _mem_src + 0
+    clc
+    adc #128
+    sta _mem_src + 0
+    if (not carry) { jmp 'fls_skipdone }
+    inc _mem_src + 1
+    jmp 'fls_skipdone
+    'fls_skip256:
+    // ENCODE_256: _mem_src += 256.
+    inc _mem_src + 1
+    'fls_skipdone:
+    // _mem_src += tile * 8: eight iterations of _mem_src.lo += tile,
+    // with carry into the high byte. The counter lives in _fls_row.
+    lda #8
+    sta _fls_row
+    'fls_add8:
+    lda _mem_src + 0
+    clc
+    adc _dt_val
+    sta _mem_src + 0
+    if (not carry) { jmp 'fls_addnext }
+    inc _mem_src + 1
+    'fls_addnext:
+    dec _fls_row
+    lda _fls_row
+    cmp #0
+    if (not zero) { jmp 'fls_add8 }
+    'fls_vram:
+    // Set the PPU address to (base + slot) * 16: the CHR tile slot
+    // for this glyph. The pattern table starts at 0x0000.
+    // hi = tile >> 4, lo = tile << 4 (the address is tile * 16).
+    lda _font_current + 2
+    clc
+    adc _fls_slot
+    sta _fls_row
+    lda PPU::STATUS
+    // hi: four right shifts through the carry flag. The first shift
+    // moves bit 0 out; the value is below 256, so the bits shift in
+    // as zeros. The 2002 read clears the 2006 address-latch toggle,
+    // so the next two writes form the (hi, lo) pair.
+    lda _fls_row
+    lsr
+    lsr
+    lsr
+    lsr
+    sta PPU::ADDRESS
+    // lo. A still needs the tile value: reload it.
+    lda _fls_row
+    asl
+    asl
+    asl
+    asl
+    sta PPU::ADDRESS
+    // Copy the 8 rows. NES layout: 8 plane-0 bytes, then 8 plane-1
+    // bytes. Each row byte expands to the same value on both planes
+    // (a set bit = color 3, a clear bit = color 0). Y walks the 8
+    // source rows; _fls_row counts the rows.
+    ldy #0
+    lda #8
+    sta _fls_row
+    'fls_p0:
+    lda (_mem_src), y
+    sta PPU::IO
+    iny
+    dec _fls_row
+    lda _fls_row
+    cmp #0
+    if (not zero) { jmp 'fls_p0 }
+    ldy #0
+    lda #8
+    sta _fls_row
+    'fls_p1:
+    lda (_mem_src), y
+    sta PPU::IO
+    iny
+    dec _fls_row
+    lda _fls_row
+    cmp #0
+    if (not zero) { jmp 'fls_p1 }
+    // Advance _mem_src past this glyph's 8 rows.
+    lda _mem_src + 0
+    clc
+    adc #8
+    sta _mem_src + 0
+    if (not carry) { jmp 'fls_rem }
+    inc _mem_src + 1
+    'fls_rem:
+    // _tile_remap[char] = base + slot.
+    lda _font_current + 2
+    clc
+    adc _fls_slot
+    ldy _putchar_char
+    sta _tile_remap, y
+    // slot++.
+    inc _fls_slot
+    // len--; loop while it is not zero.
+    dec _draw_text_len
+    lda _draw_text_len
+    cmp #0
+    if (not zero) { jmp 'fls_char }
 }

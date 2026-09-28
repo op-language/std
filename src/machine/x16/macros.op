@@ -1,0 +1,165 @@
+//! Commander X16 Macros
+//!
+//! System inline macros for the Commander X16. All macros use W65C02S
+//! mnemonics. VERA is reached through the data-port registers: set the
+//! 17-bit VRAM address with vera_set_address, then stream bytes through
+//! DATA0.
+//!
+//! Interrupt vectors live in the bank-0 system ROM, not in program ROM.
+//! A PRG program must not declare `#[interrupt]` handlers. A cartridge
+//! program may declare `nmi` and `irq` handlers when it declares a ROM
+//! section that contains $FFF8-$FFFF (see the language specification).
+//! Cartridge code entered at $C004 does not need a reset vector.
+
+use super::constants::*;
+use super::types::*;
+
+// --- interrupt control -----------------------------------------------------
+
+inline fn enable_interrupts() {
+    cli
+}
+
+inline fn disable_interrupts() {
+    sei
+}
+
+// --- banking ---------------------------------------------------------------
+
+inline fn set_ram_bank(n) {
+    lda #n
+    sta RAM_BANK
+}
+
+inline fn set_rom_bank(n) {
+    lda #n
+    sta ROM_BANK
+}
+
+// --- VERA address port -----------------------------------------------------
+//
+// The 17-bit VRAM address spans three registers. The increment field
+// lives in the top nibble of ADDR_H; the bank bit (16) is bit 0 of
+// ADDR_H. `stride` is a VERA_ADDR_INC value. (The parameter is not
+// named `inc`: the lexer classifies `inc` as an opcode mnemonic.)
+
+inline fn vera_set_address(bank, addr, stride) {
+    lda #lo!(addr)
+    sta VERA::ADDR_L
+    lda #hi!(addr)
+    sta VERA::ADDR_M
+    lda #stride | ((addr >> 16) & 0x01)
+    sta VERA::ADDR_H
+}
+
+inline fn vera_set_address_inc(addr, stride) {
+    lda #lo!(addr)
+    sta VERA::ADDR_L
+    lda #hi!(addr)
+    sta VERA::ADDR_M
+    lda #((addr >> 16) & 0x01) | stride
+    sta VERA::ADDR_H
+}
+
+inline fn vera_write(value) {
+    lda #value
+    sta VERA::DATA0
+}
+
+inline fn vera_write_a() {
+    sta VERA::DATA0
+}
+
+inline fn vera_read() {
+    lda VERA::DATA0
+}
+
+inline fn vera_clear_address() {
+    nop
+}
+
+// --- display composer -------------------------------------------------------
+
+inline fn turn_video_on() {
+    // VGA output, layer 0 and layer 1 and sprites enabled.
+    lda #(OUT_MODE::VGA << 0) | %00111000
+    sta VERA::DC_VIDEO
+}
+
+inline fn turn_video_off() {
+    lda #OUT_MODE::DISABLED
+    sta VERA::DC_VIDEO
+}
+
+// --- system initialization -------------------------------------------------
+//
+// Mask interrupts, select bank 0, pulse the VERA reset bit, and set the
+// composer to VGA with all layers disabled. A cartridge enters at $C004
+// with interrupts masked; PRG code starts under the KERNAL with an
+// unknown mask state, so this macro always issues the sei itself.
+
+inline fn system_initialize() {
+    sei
+    lda #0
+    sta RAM_BANK
+    lda #ROM_BANK_KERNAL
+    sta ROM_BANK
+    // Reset VERA: the CTRL reset bit reconfigures the FPGA and resets
+    // every register including the palette.
+    lda #0x80
+    sta VERA::CTRL
+    lda #0
+    sta VERA::CTRL
+    // VGA output, layer 0 enabled. Programs enable additional layers
+    // explicitly.
+    lda #(OUT_MODE::VGA << 0) | %00101000
+    sta VERA::DC_VIDEO
+}
+
+// --- vsync wait -------------------------------------------------------------
+
+inline fn wait_vsync() {
+    // Wait while the VSYNC flag is clear, then clear it. The clear uses
+    // the bitwise complement (~), not the logical not (!): !VSYNC
+    // folds to 0 and would clear every flag in the register.
+    do {
+        lda VERA::ISR
+        and #VERA_INTERRUPT::VSYNC
+    } while (zero)
+    lda VERA::ISR
+    and #~VERA_INTERRUPT::VSYNC
+    sta VERA::ISR
+}
+
+// --- PSG voice setup --------------------------------------------------------
+//
+// The PSG registers live in VRAM at $1:F9C0 (16 voices of 4 bytes), not
+// on the CPU bus. Reaching them goes through the VERA address port with
+// the bank bit set. Each macro re-programs the address, so the caller's
+// DATA0 streaming address is clobbered; re-call vera_set_address after
+// PSG access if you stream to VRAM.
+//
+// Per-voice register layout: 0 frequency low, 1 frequency high,
+// 2 volume (LR + 6-bit), 3 waveform (top 2 bits) and pulse width.
+
+inline fn psg_set_wave(voice, wave) {
+    vera_set_address_inc(PSG_BASE + (voice * 4) + 3, VERA_ADDR_INC::X0)
+    lda #(wave << 6)
+    sta VERA::DATA0
+}
+
+inline fn psg_set_volume(voice, vol) {
+    vera_set_address_inc(PSG_BASE + (voice * 4) + 2, VERA_ADDR_INC::X0)
+    lda #vol
+    sta VERA::DATA0
+}
+
+// --- emulator debug output --------------------------------------------------
+//
+// Prints one character on the host console under x16emu. A no-op on
+// real hardware unless an expansion card decodes the emulator range.
+
+inline fn debug_print_char(c) {
+    lda #c
+    sta EMU_DEBUG::DEBUG_OUT_CH
+}

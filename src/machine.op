@@ -76,6 +76,9 @@ mod spectrum;
 #[cfg(machine = "ti-85")]
 mod ti_85;
 
+#[cfg(machine = "x16")]
+mod x16;
+
 // --- Re-export the selected machine module so `machine::*` works flat --------
 
 #[cfg(machine = "nes")]
@@ -149,3 +152,6 @@ pub use spectrum::*;
 
 #[cfg(machine = "ti-85")]
 pub use ti_85::*;
+
+#[cfg(machine = "x16")]
+pub use x16::*;

@@ -1,0 +1,18 @@
+//! Test: w65c02-commander-x16
+//!
+//! Verifies that the cfg predicates for cpu, manufacturer, machine,
+//! and target match the triplet w65c02-commander-x16.
+
+use std::*;
+
+#[cfg(cpu = "w65c02")]
+const _TEST_CPU: u8 = 0;
+
+#[cfg(manufacturer = "commander")]
+const _TEST_MFR: u8 = 0;
+
+#[cfg(machine = "x16")]
+const _TEST_MACHINE: u8 = 0;
+
+#[cfg(target = "w65c02-commander-x16")]
+const _TEST_TARGET: u8 = 0;
