@@ -1,0 +1,204 @@
+//! WDC W65C02S CPU
+//!
+//! Registers, condition keywords, opcode mnemonics, addressing modes,
+//! and interrupt names for the WDC W65C02S CPU. The W65C02S is the CPU
+//! in the Commander X16. It is a CMOS 65SC02 core with the Rockwell
+//! bit-manipulation instructions and the two WDC low-power modes. The
+//! 65SC02 removes the undocumented opcodes.
+
+// --- Clock frequency -------------------------------------------------------
+
+const CLOCK_HZ: u32 = 8000000;
+
+// --- Status flags ----------------------------------------------------------
+
+enum STATUS {
+    N = 0x80,
+    V = 0x40,
+    B = 0x10,
+    D = 0x08,
+    I = 0x04,
+    Z = 0x02,
+    C = 0x01,
+}
+
+// --- Registers -------------------------------------------------------------
+//
+// The lib defines cpu::a, cpu::x, and cpu::y as register references.
+
+enum CPU_REG {
+    a = 0,
+    x = 1,
+    y = 2,
+}
+
+// --- Condition keywords ----------------------------------------------------
+//
+// The lib defines the condition keywords for if, while, and do-while
+// tests. The modifier keywords is, has, no, and not may prefix a
+// condition.
+
+enum COND {
+    plus       = 0,
+    positive   = 0,
+    minus      = 1,
+    negative   = 1,
+    greater    = 0,
+    less       = 1,
+    overflow   = 2,
+    carry      = 3,
+    nonzero    = 4,
+    set        = 4,
+    true       = 4,
+    zero       = 5,
+    unset      = 5,
+    false      = 5,
+    clear      = 5,
+    equal      = 5,
+}
+
+// --- Opcode mnemonics ------------------------------------------------------
+//
+// The W65C02S opcode table includes the 6502 base mnemonics, the 65SC02
+// additional mnemonics, and the Rockwell bit-manipulation mnemonics. The
+// bit number is part of the mnemonic for RMB, SMB, BBR, and BBS. The
+// W65C02S removes the undocumented opcodes.
+
+enum OPCODE {
+    ADC,
+    AND,
+    ASL,
+    BBR0,
+    BBR1,
+    BBR2,
+    BBR3,
+    BBR4,
+    BBR5,
+    BBR6,
+    BBR7,
+    BBS0,
+    BBS1,
+    BBS2,
+    BBS3,
+    BBS4,
+    BBS5,
+    BBS6,
+    BBS7,
+    BCC,
+    BCS,
+    BEQ,
+    BIT,
+    BMI,
+    BNE,
+    BPL,
+    BRA,
+    BRK,
+    BVC,
+    BVS,
+    CLC,
+    CLD,
+    CLI,
+    CLV,
+    CMP,
+    CPX,
+    CPY,
+    DEC,
+    DEA,
+    DEX,
+    DEY,
+    EOR,
+    INC,
+    INA,
+    INX,
+    INY,
+    JMP,
+    JSR,
+    LDA,
+    LDX,
+    LDY,
+    LSR,
+    NOP,
+    ORA,
+    PHA,
+    PHP,
+    PHX,
+    PHY,
+    PLA,
+    PLP,
+    PLX,
+    PLY,
+    RMB0,
+    RMB1,
+    RMB2,
+    RMB3,
+    RMB4,
+    RMB5,
+    RMB6,
+    RMB7,
+    ROL,
+    ROR,
+    RTI,
+    RTS,
+    SBC,
+    SEC,
+    SED,
+    SEI,
+    SMB0,
+    SMB1,
+    SMB2,
+    SMB3,
+    SMB4,
+    SMB5,
+    SMB6,
+    SMB7,
+    STA,
+    STP,
+    STX,
+    STY,
+    STZ,
+    TAX,
+    TAY,
+    TRB,
+    TSB,
+    TSX,
+    TXA,
+    TXS,
+    TYA,
+    WAI,
+}
+
+// --- Addressing modes ------------------------------------------------------
+//
+// The lib defines the 6502 addressing modes plus the zero-page-indirect
+// addressing mode. The Rockwell bit branches take a zero-page address
+// and a relative label; the compiler treats them as relative branches
+// with a leading zero-page operand.
+
+enum ADDR_MODE {
+    zp,
+    abs,
+    rel,
+    ind,
+    idx,
+    ind_idx,
+}
+
+// --- Interrupt vectors -----------------------------------------------------
+//
+// The W65C02S uses the 6502-family vector layout. The vectors live in
+// the bank-0 system ROM on the Commander X16. A PRG program must not
+// declare interrupt vectors; a cartridge program may declare nmi and
+// irq handlers.
+
+enum INTERRUPT {
+    reset,
+    nmi,
+    irq,
+}
+
+// Re-export the enum variants.
+pub use CPU_REG::*;
+pub use COND::*;
+pub use OPCODE::*;
+pub use ADDR_MODE::*;
+pub use INTERRUPT::*;

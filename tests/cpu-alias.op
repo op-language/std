@@ -4,7 +4,10 @@
 
 use std::*;
 
-// This const is only valid if `cpu` is an alias for the selected CPU module.
-// cpu::a resolves to the mos6502 CPU_REG::a variant.
+// These consts are only valid if `cpu` is an alias for the selected CPU
+// module. cpu::a resolves to the selected CPU's CPU_REG::a variant.
 #[cfg(cpu = "mos6502")]
 const _TEST_CPU_ALIAS: u8 = cpu::a;
+
+#[cfg(cpu = "w65c02")]
+const _TEST_CPU_ALIAS_W65C02: u8 = cpu::a;

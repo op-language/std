@@ -31,6 +31,9 @@ mod vl65nc02;
 #[cfg(cpu = "sm83")]
 mod sm83;
 
+#[cfg(cpu = "w65c02")]
+mod w65c02;
+
 // --- Re-export the selected CPU module so `cpu::*` works flat ---------------
 
 #[cfg(cpu = "mos6502")]
@@ -59,3 +62,6 @@ pub use vl65nc02::*;
 
 #[cfg(cpu = "sm83")]
 pub use sm83::*;
+
+#[cfg(cpu = "w65c02")]
+pub use w65c02::*;

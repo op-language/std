@@ -1,0 +1,228 @@
+//! Commander X16 Constants
+//!
+//! Hardware register addresses, VERA register enums, clock frequency,
+//! screen dimensions, memory-map constants, and the cartridge boot
+//! signature for the Commander X16.
+//!
+//! The hardware registers are enum-based selectors (`VERA::ADDR_L`),
+//! which the compiler resolves as constants. Use `sta VERA::ADDR_L` and
+//! `lda VERA::ISR` with the absolute addressing forms.
+
+// --- clock frequency -------------------------------------------------------
+
+const CLOCK_HZ: u32 = 8000000;
+
+// --- screen dimensions -----------------------------------------------------
+
+const SCREEN_WIDTH: u16 = 640;
+const SCREEN_HEIGHT: u16 = 480;
+const VRAM_SIZE: u32 = 0x20000;
+
+// --- banking registers -----------------------------------------------------
+//
+// Writing $0000 selects the banked-RAM window at $A000-$BFFF. Writing
+// $0001 selects the visible ROM bank at $C000-$FFFF (0-31 system ROM,
+// 32-255 cartridge).
+
+const RAM_BANK: u8 = 0x0000;
+const ROM_BANK: u8 = 0x0001;
+
+// --- VERA registers ($9F20-$9F3F) ------------------------------------------
+
+enum VERA {
+    ADDR_L     = 0x9F20,
+    ADDR_M     = 0x9F21,
+    ADDR_H     = 0x9F22,
+    DATA0      = 0x9F23,
+    DATA1      = 0x9F24,
+    CTRL       = 0x9F25,
+    IEN        = 0x9F26,
+    ISR        = 0x9F27,
+    IRQLINE_L  = 0x9F28,
+    DC_VIDEO   = 0x9F29,
+    DC_HSCALE  = 0x9F2A,
+    DC_VSCALE  = 0x9F2B,
+    DC_BORDER  = 0x9F2C,
+    L0_CONFIG  = 0x9F2D,
+    L0_MAPBASE = 0x9F2E,
+    L0_TILEBASE = 0x9F2F,
+    L0_HSCROLL_L = 0x9F30,
+    L0_HSCROLL_H = 0x9F31,
+    L0_VSCROLL_L = 0x9F32,
+    L0_VSCROLL_H = 0x9F33,
+    L1_CONFIG  = 0x9F34,
+    L1_MAPBASE = 0x9F35,
+    L1_TILEBASE = 0x9F36,
+    L1_HSCROLL_L = 0x9F37,
+    L1_HSCROLL_H = 0x9F38,
+    L1_VSCROLL_L = 0x9F39,
+    L1_VSCROLL_H = 0x9F3A,
+    AUDIO_CTRL = 0x9F3B,
+    AUDIO_RATE = 0x9F3C,
+    AUDIO_DATA = 0x9F3D,
+    SPI_DATA   = 0x9F3E,
+    SPI_CTRL   = 0x9F3F,
+}
+
+// --- YM2151 registers ($9F40-$9F41) ----------------------------------------
+//
+// The YM2151 range is partially decoded: even addresses set the
+// register select, odd addresses write the data.
+
+enum YM {
+    REG  = 0x9F40,
+    DATA = 0x9F41,
+}
+
+// --- VIA registers ---------------------------------------------------------
+
+enum VIA1 {
+    PB     = 0x9F00,
+    PA     = 0x9F01,
+    DDRB   = 0x9F02,
+    DDRA   = 0x9F03,
+    T1_L   = 0x9F04,
+    T1_H   = 0x9F05,
+    T1_LC  = 0x9F06,
+    T1_HC  = 0x9F07,
+    T2_L   = 0x9F08,
+    T2_H   = 0x9F09,
+    SR     = 0x9F0A,
+    ACR    = 0x9F0B,
+    PCR    = 0x9F0C,
+    IFR    = 0x9F0D,
+    IER    = 0x9F0E,
+}
+
+enum VIA2 {
+    PB     = 0x9F10,
+    PA     = 0x9F11,
+    DDRB   = 0x9F12,
+    DDRA   = 0x9F13,
+    T1_L   = 0x9F14,
+    T1_H   = 0x9F15,
+    T1_LC  = 0x9F16,
+    T1_HC  = 0x9F17,
+    T2_L   = 0x9F18,
+    T2_H   = 0x9F19,
+    SR     = 0x9F1A,
+    ACR    = 0x9F1B,
+    PCR    = 0x9F1C,
+    IFR    = 0x9F1D,
+    IER    = 0x9F1E,
+}
+
+// --- emulator debug registers ($9FB0-$9FBB) --------------------------------
+//
+// x16emu exposes these registers; real hardware has open-bus reads
+// there. Check EMU_DEBUG::PRESENCE_1 and EMU_DEBUG::PRESENCE_2 for the
+// "1" and "6" markers before using any other debug register.
+
+enum EMU_DEBUG {
+    CTRL         = 0x9FB0,
+    LOG_VIDEO    = 0x9FB1,
+    LOG_KEYBOARD = 0x9FB2,
+    ECHO_MODE    = 0x9FB3,
+    SAVE_ON_EXIT = 0x9FB4,
+    GIF_CTRL     = 0x9FB5,
+    WAV_CTRL     = 0x9FB6,
+    CMD_KEYS     = 0x9FB7,
+    CLOCK_L      = 0x9FB8,
+    DEBUG_OUT_1  = 0x9FB9,
+    DEBUG_OUT_2  = 0x9FBA,
+    DEBUG_OUT_CH = 0x9FBB,
+    KEYMAP       = 0x9FBD,
+    PRESENCE_1   = 0x9FBE,
+    PRESENCE_2   = 0x9FBF,
+}
+
+// --- VERA address increment field ------------------------------------------
+//
+// The increment field lives in the top nibble of VERA::ADDR_H. The
+// value selects the stride per DATA0/DATA1 access.
+
+enum VERA_ADDR_INC {
+    X0     = 0x00,
+    X1     = 0x10,
+    X2     = 0x20,
+    X4     = 0x30,
+    X8     = 0x40,
+    X16    = 0x50,
+    X32    = 0x60,
+    X64    = 0x70,
+    X128   = 0x80,
+    X256   = 0x90,
+    X512   = 0xA0,
+    X40    = 0xB0,
+    X80    = 0xC0,
+    X160   = 0xD0,
+    X320   = 0xE0,
+    X640   = 0xF0,
+}
+
+// --- DCSEL composer selector values ----------------------------------------
+//
+// The composer registers at $9F29-$9F2C multiplex through DCSEL in the
+// top bits of VERA::CTRL. DCSEL 0 is the default video layer setup.
+
+enum DCSEL {
+    SEL0 = 0x00,
+    SEL1 = 0x10,
+    SEL2 = 0x20,
+    SEL3 = 0x30,
+    SEL4 = 0x40,
+    SEL5 = 0x50,
+    SEL6 = 0x60,
+}
+
+// --- display composer output mode ------------------------------------------
+
+enum OUT_MODE {
+    DISABLED = 0,
+    VGA      = 1,
+    NTSC     = 2,
+    RGB      = 3,
+}
+
+// --- layer color depth ------------------------------------------------------
+
+enum LAYER_DEPTH {
+    BPP1 = 0,
+    BPP2 = 1,
+    BPP4 = 2,
+    BPP8 = 3,
+}
+
+// --- memory map constants ---------------------------------------------------
+
+const FIXED_RAM_SIZE: u16 = 0x9F00;
+const BANKED_RAM_BASE: u16 = 0xA000;
+const BANKED_ROM_BASE: u16 = 0xC000;
+const CART_ENTRY: u16 = 0xC004;
+
+// --- bank constants ---------------------------------------------------------
+
+const ROM_BANK_KERNAL: u8 = 0;
+const CART_BANK_FIRST: u8 = 32;
+
+// --- VRAM region bases (17-bit addresses, bank in bit 16) -------------------
+
+const PSG_BASE: u32 = 0x1F9C0;
+const PALETTE_BASE: u32 = 0x1FA00;
+const SPRITE_BASE: u32 = 0x1FC00;
+
+// --- cartridge boot ---------------------------------------------------------
+//
+// The KERNAL checks $C000-$C003 of bank 32 for this signature and enters
+// the cartridge at $C004. The compiler reserves the signature bytes when
+// the source declares a #[crt(...)] header; programs do not write them.
+
+const CRT_SIGNATURE: [u8; 4] = "CX16";
+
+// Re-export the enum variants.
+pub use VERA::*;
+pub use VERA_ADDR_INC::*;
+pub use DCSEL::*;
+pub use OUT_MODE::*;
+pub use LAYER_DEPTH::*;
+pub use EMU_DEBUG::*;
